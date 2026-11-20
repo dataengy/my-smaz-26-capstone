@@ -1,0 +1,34 @@
+# Research timing and data freshness.
+cot_max_age_days: 7
+holding_sessions: 5
+cross_market_max_age_days: 4
+market_download_timeout_seconds: 30
+cftc_download_timeout_seconds: 45
+
+# Chronological partition fractions; the remainder is the final holdout.
+train_fraction: 0.6
+validation_fraction: 0.2
+random_state: 42
+ridge_alphas: [1.0, 10.0]
+tree_depths: [3, 5]
+tree_min_samples_leaf: 20
+forest_estimators: 80
+forest_depths: [3, 5]
+forest_min_samples_leaf: 10
+
+# Validation-only trading threshold selection and execution assumptions.
+thresholds: [0.0, 0.002, 0.005]
+cost_bps: 10
+initial_capital: 100000
+
+# Local generated files. These locations are ignored by Git.
+output_dir: artifacts
+
+# Opt-in fresh-origin checkout acceptance test. It verifies the clean clone's
+# locked environment and deterministic project checks, not real-data research.
+e2e_workspace: .run/e2e
+e2e_clone_timeout_seconds: 300
+e2e_command_timeout_seconds: 900
+
+# Optional Codex session metadata input; never exports conversation text.
+codex_sessions_root: ~/.codex/sessions

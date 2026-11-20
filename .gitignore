@@ -1,0 +1,16 @@
+# Generated market data, models and reports
+data/
+artifacts/
+reports/generated/
+.run/
+.ai/.locks/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.env
+.env.*
+!.env.example
+.idea/
+*.egg-info/

@@ -1,0 +1,13 @@
+{
+  "data_dir": "data",
+  "start": "2018-01-01",
+  "end": null,
+  "release_manifest": "config/release_dates.csv",
+  "train_fraction": 0.6,
+  "validation_fraction": 0.2,
+  "thresholds": [0.0, 0.002, 0.005],
+  "cost_bps": 10,
+  "initial_capital": 100000,
+  "holding_sessions": 5,
+  "random_state": 42
+}

@@ -1,0 +1,34 @@
+# Data scope and source locations. `end` is exclusive; null means latest
+# completed data available when a download starts.
+settings_file: config/settings.yml
+data_dir: data
+release_manifest: config/release_dates.csv
+start: '2018-01-01'
+end: null
+
+# Only GLD and SLV are targets. Every other series is an optional predictor.
+target_symbols: [GLD, SLV]
+required_symbols: [GLD, SLV, BTC-USD, NVDA]
+symbols:
+  GLD: GLD
+  SLV: SLV
+  BTC-USD: BTC-USD
+  SOL-USD: SOL-USD
+  ETH-USD: ETH-USD
+  ZEC-USD: ZEC-USD
+  NVDA: NVDA
+  ^GSPC: ^GSPC
+  ^IXIC: ^IXIC
+  ^DJI: ^DJI
+
+# Map provider tickers to stable feature-name prefixes. Removing an optional
+# entry disables its download and model feature; required series remain active.
+market_features:
+  BTC-USD: btc
+  SOL-USD: sol
+  ETH-USD: eth
+  ZEC-USD: zec
+  NVDA: nvda
+  ^GSPC: sp500
+  ^IXIC: nasdaq
+  ^DJI: dow
