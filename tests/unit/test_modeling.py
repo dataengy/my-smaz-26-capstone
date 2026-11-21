@@ -29,6 +29,27 @@ def test_insufficient_history_fails_explicitly():
         fit_predict(frame, ['x'])
 
 
+def test_split_boundaries_use_configured_signal_dates_and_purge_horizon():
+    dates = pd.bdate_range('2022-01-03', periods=100)
+    # Both assets have 10-session labels. The last labeled signals have longer
+    # exits, so deriving boundaries from surviving/purged rows would shift them.
+    frame = pd.DataFrame([
+        {'date': date, 'ticker': ticker, 'x': float(i), 'target': i / 1000,
+         'exit_date': dates[min(i + 10, len(dates) - 1)]}
+        for i, date in enumerate(dates[:-10]) for ticker in ('GLD', 'SLV')
+    ])
+    result = fit_predict(frame, ['x'], {'train_fraction': .6, 'validation_fraction': .2})
+
+    assert result['split_dates']['validation_start'] == str(dates[int(90 * .6)].date())
+    assert result['split_dates']['test_start'] == str(dates[int(90 * .8)].date())
+    assert pd.Timestamp(result['split_dates']['train_last_exit']) < pd.Timestamp(
+        result['split_dates']['validation_start']
+    )
+    assert pd.Timestamp(result['split_dates']['validation_last_exit']) < pd.Timestamp(
+        result['split_dates']['test_start']
+    )
+
+
 def test_heldout_labels_do_not_select_model_threshold_or_change_predictions():
     dates = pd.bdate_range('2020-01-01', periods=130)
     frame = pd.DataFrame([

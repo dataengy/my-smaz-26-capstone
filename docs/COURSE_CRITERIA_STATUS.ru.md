@@ -1,6 +1,6 @@
 # Покрытие критериев проекта курса
 
-**Проверено:** 2026-11-21 по [официальной рубрике проекта курса](https://raw.githubusercontent.com/DataTalksClub/stock-markets-analytics-zoomcamp/main/projects/README.md). [English version](COURSE_CRITERIA_STATUS.md).
+**Проверено:** 2026-11-21 по [официальной рубрике проекта курса](https://raw.githubusercontent.com/DataTalksClub/stock-markets-analytics-zoomcamp/main/projects/README.md). Источник доступен; релевантные требования не изменились: шесть обязательных критериев, индивидуальная презентация, три оценки проектов однокурсников для получения баллов и срок первой попытки 2026-11-20 23:59:59 по Дублину. [English version](COURSE_CRITERIA_STATUS.md).
 
 Это датированная сводка свидетельств в рабочей папке, а не прогноз оценки и не решение проверяющего. **Частично** означает, что артефакт или код есть, но требуемые результаты курса или их приёмка не подтверждены. [Полная матрица критериев](../openspec/specs/capstone/spec.md#course-acceptance-evidence-matrix) содержит ссылки на свидетельства и причины. Обновляйте эту сводку при каждом запуске навыка `capstone-verification`.
 

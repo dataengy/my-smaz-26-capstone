@@ -1,6 +1,6 @@
 # Course criteria coverage
 
-**Checked:** 2026-11-21 against the [official course project rubric](https://raw.githubusercontent.com/DataTalksClub/stock-markets-analytics-zoomcamp/main/projects/README.md).
+**Checked:** 2026-11-21 against the [official course project rubric](https://raw.githubusercontent.com/DataTalksClub/stock-markets-analytics-zoomcamp/main/projects/README.md). The source remains reachable and unchanged in the criteria relevant here: six bold minimum-score gates, an individual presentation, three peer evaluations for project points, and the listed attempt-one deadline of 2026-11-20 23:59:59 Dublin time.
 
 [Русская версия](COURSE_CRITERIA_STATUS.ru.md).
 

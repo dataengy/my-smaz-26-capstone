@@ -53,7 +53,10 @@ def fit_predict(frame, numeric_features, config=None):
     data['date'] = pd.to_datetime(data['date'])
     data['exit_date'] = pd.to_datetime(data['exit_date'])
     labeled = data[data['target'].notna() & data['exit_date'].notna()].copy()
-    dates = np.sort(labeled['date'].unique())
+    # Partition by signal dates, independent of whether a label survives purging.
+    # This ensures the boundaries describe the configured chronology rather than
+    # shifting when label horizons or missing targets vary near the end.
+    dates = np.sort(data.loc[data['target'].notna(), 'date'].unique())
     train_fraction = float(cfg.get('train_fraction', .6))
     val_fraction = float(cfg.get('validation_fraction', .2))
     if not (0 < train_fraction < 1 and 0 < val_fraction < 1 and train_fraction + val_fraction < 1):
@@ -62,6 +65,9 @@ def fit_predict(frame, numeric_features, config=None):
         raise ValueError('At least 40 labeled session dates are required')
     val_start = pd.Timestamp(dates[int(len(dates) * train_fraction)])
     test_start = pd.Timestamp(dates[int(len(dates) * (train_fraction + val_fraction))])
+    # A target is the return over (entry_date, exit_date]. It is safe in a
+    # partition only when its exit is strictly before the next partition's
+    # first signal, so no future partition outcome leaks across the boundary.
     train = labeled[(labeled.date < val_start) & (labeled.exit_date < val_start)]
     val = labeled[(labeled.date >= val_start) & (labeled.date < test_start) & (labeled.exit_date < test_start)]
     test = labeled[labeled.date >= test_start]
