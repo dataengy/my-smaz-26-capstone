@@ -24,6 +24,19 @@ make usage          # experimental local Codex metadata summary
 
 `make download` accesses external providers and can overwrite local source snapshots. Snapshot data and outputs stay under ignored `data/` and `artifacts/`. E2E tests are opt-in and their required environment variables are described in the [runbook](RUNBOOK.md). The `usage` summary is not a complete session ledger or billing report.
 
+## Network diagnostics and clean installation
+
+Use these scripts when source access or package installation is uncertain:
+
+```sh
+python3 scripts/check_external_access.py
+python3 scripts/check_external_access.py --only yahoo_gld_5d_chart
+python3 scripts/check_external_access.py --only cftc_disaggregated_futures_only_gold_api
+python3 scripts/check_clean_install.py
+```
+
+The source probe records DNS and bounded HTTPS outcomes for GitHub, PyPI, CFTC, Yahoo Finance, FRED, Stooq and Alpha Vantage; it reads at most 8 KiB per response, checks the CFTC/Yahoo/CSV response shapes, saves no market data and does not retry HTTP 429. If Python `urllib` times out on the FRED landing page, it runs a bounded `curl` request that discards the body and records HTTP status and remote IP separately. This distinguishes a client/CDN-edge discrepancy from host unavailability; it does not validate FRED API access or point-in-time suitability. Its Stooq request is limited to a short recent GLD daily sample. `--only` can be repeated to select endpoints; `--timeout` sets the per-request timeout. Run it in the same network boundary as the acquisition workflow. A sandbox socket denial is not evidence of a device-wide DNS outage. The clean-install check uses `uv.lock` and the `dev` extra in a temporary environment with a new temporary uv cache, verifies imports, notebook-format support and an XNYS session, then removes both temporary paths. It does not run tests or download project market snapshots.
+
 The Justfile provides supporting, multi-step or agentic operations. Install [just](https://just.systems/) for these targets:
 
 ```sh

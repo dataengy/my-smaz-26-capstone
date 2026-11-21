@@ -2,13 +2,19 @@
 
 Updated: 2026-11-21. The [backlog](BACKLOG.md) owns remaining work; the [next steps](NEXT_STEPS.md) and [parallel prompts](PARALLEL_SESSION_PROMPTS.md) define the next execution wave.
 
-- **Research:** No real market snapshots, model results, backtest results, or profitability conclusions have been produced.
+- **Research:** No persisted real market snapshots, model results, backtest results, or profitability conclusions have been produced. Tiny non-persisted source probes are recorded below.
 - **COT:** Four 2023 report dates have evidenced conservative availability cutoffs; this is insufficient for the planned experiment. See [COT release evidence](../docs/COT_RELEASE_EVIDENCE.md).
-- **Environment:** `uv.lock` exists; a fresh cloned environment installed the locked `test` extra offline from the local uv cache. Clean installation of the `dev`/notebook extra remains unverified.
-- **Checks:** Latest full suite: 32 passed, 2 skipped (real-data E2E and origin-clone E2E when their environment variables are unset), with 13 deprecation warnings. The origin-clone E2E also passed separately against a temporary local Git origin. Offline lock check passed. Fixture, integration and clone tests do not validate the full real-data workflow or a published remote.
-- **Access:** A fresh read-only probe again failed DNS for CFTC and Yahoo; no financial data were downloaded. Provider access remains a current blocker, not a claim of permanent unavailability.
+- **Environment:** `uv.lock` exists. Approved runs of `scripts/check_clean_install.py` passed `uv sync --locked --extra dev` under CPython 3.13.9 in disposable environments with fresh caches; project/development imports, `nbformat` and the XNYS session for 2024-07-03 passed. The temporary environments/caches were removed. A run inside the sandbox failed to resolve `files.pythonhosted.org`, then a repeated approved run outside the sandbox passed. This does not run tests or start the notebook server.
+- **Checks:** Latest full suite: 34 passed, 2 skipped (real-data E2E and origin-clone E2E when their environment variables are unset), with 13 deprecation warnings. Fixture/integration results do not validate a full real-data workflow or a published remote.
+- **Access:** The sandbox denied DNS socket calls; approved probes outside it resolved GitHub, CFTC, Yahoo, PyPI, FRED, Stooq and Alpha Vantage. CFTC PRE returned one GOLD Disaggregated Futures Only row; Yahoo returned a bounded GLD five-day chart. The bounded Stooq GLD data URL returned an HTML JavaScript challenge rather than CSV. A fresh targeted check again showed Python `urllib` timing out for FRED while the probe's bounded `curl` fallback reached HTTP 200 from `104.96.153.18`; the diagnostic records both outcomes as a client-specific discrepancy. These are connectivity checks only; no snapshots were saved. Alpha Vantage's data API was not queried because no API key was configured.
 - **Agent tooling:** Role descriptions, project skill drafts and a human-readable OpenSpec baseline exist. Skill auto-discovery and OpenSpec CLI validation are not confirmed. Local token usage reporting is experimental and incomplete.
-- **Version control:** This directory is not currently a Git repository; there is no commit history to audit or stage.
+- **Version control:** This work is isolated in branch `codex/time-simulation-acceptance-2026-11-21` at local base `bd2454d`; `origin` is the user-provided GitHub repository. User supplied `43e768f` as the previous last commit. Do not merge or overwrite other sessions' uncommitted work in the main checkout.
+
+## Current session closeout — 2026-11-21
+
+- The network diagnosis is complete for this turn: failures inside the sandbox are not proof of device-wide DNS failure; the FRED discrepancy is visible as `urllib` timeout plus `curl` HTTP 200; the tested Stooq data endpoint returns a JavaScript challenge. No resolver/VPN/proxy settings were changed and no provider snapshots were saved.
+- The next project action is still the P0 source-ingestion gate: retrieve and validate local GLD/SLV and required CFTC/market snapshots with provenance, then establish sufficient report-specific COT availability. FRED stays deferred pending API/vintage/release-time review; Alpha Vantage still needs a configured key for an actual data request.
+- Current branch/worktree: `codex/time-simulation-acceptance-2026-11-21` at `bd2454d`; changes are uncommitted. The worktree contains other ongoing edits (`.ai/BACKLOG.md`, `.ai/NEXT_STEPS.md`, `.ai/PARALLEL_SESSION_PROMPTS.md`, `tests/integration/test_financial_acceptance.py`, and related files); preserve them during integration. This closeout does not claim overall capstone completion.
 
 ## Command interface update — 2026-11-21
 
@@ -17,6 +23,10 @@ Updated: 2026-11-21. The [backlog](BACKLOG.md) owns remaining work; the [next st
 - Verification: `make help`, `just --list`, `make -n verify`, and `git diff --check` passed. `just verify` passed tool discovery, offline lock check, compilation and full tests: **32 passed, 2 skipped**, 13 deprecation warnings. Skips are opt-in origin-clone and real-data E2E tests because their environment variables are unset. `Justfile` and `justfile` are the same file/inode. No data workflow or real-market experiment was run.
 
 ## Current execution wave
+
+- 2026-11-21: Added bounded source and clean-install scripts plus usage guidance in `docs/COMMANDS.md` and its Russian mirror. CFTC PRE GOLD and Yahoo GLD sample endpoints returned source-shaped data; Stooq's short GLD request returned a JavaScript challenge. `uv sync --locked --extra dev` passed outside the sandbox with a fresh cache and disposable environment, including the XNYS/2024-07-03 calendar check; the in-sandbox attempt could not resolve PyPI's file host. Python FRED access remains client/edge-specific; no project snapshots were written.
+
+- 2026-11-21: Added bounded source and clean-install scripts plus usage guidance in `docs/COMMANDS.md` and its Russian mirror. CFTC PRE GOLD and Yahoo GLD sample endpoints returned source-shaped data; Stooq responded with a JavaScript challenge. `uv sync --locked --extra dev` passed with a fresh cache and disposable environment, including the real XNYS/2024-07-03 calendar check. Python FRED access remains client/edge-specific; no project snapshots were written.
 
 - 2026-11-21: Claimed and completed prompt B, YAML configuration contract. Added six focused configuration tests covering default paths, explicit config/settings paths, configured settings-file selection, cross-file key collisions, missing required keys and invalid partition fractions. `.run/venv/bin/python -m pytest tests/unit/test_config.py -q` reported **6 passed**; the full `.run/venv/bin/python -m pytest -q` suite reported **29 passed, 2 skipped**. Offline CLI runs with default and explicit config paths both loaded configuration and stopped at the expected missing-GLD-snapshot error; this does not verify a real-data workflow. The new parallel-prompt implementation skill's front matter and required sections passed a structural check. No configuration-loader behavior change was needed.
 

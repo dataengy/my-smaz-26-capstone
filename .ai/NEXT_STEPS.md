@@ -9,9 +9,10 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 ## Current gates
 
 - No real market snapshots or empirical experiment are recorded. Four COT report dates from the 2023 ION disruption have conservative eligibility cutoffs; this is not enough for the intended train/validation/holdout study. See [COT publication evidence](../docs/COT_RELEASE_EVIDENCE.md).
-- Shell DNS to CFTC, Yahoo and package indexes has failed in the latest recorded checks. Core dependencies and `uv.lock` exist, but clean installation of development/notebook extras and full notebook execution are not verified.
-- The full local suite was last recorded as 32 passed and 2 opt-in E2E skipped. This is fixture/code evidence, not data-source or financial-result evidence.
-- `.git` exists and `git worktree list` shows this working directory on `main`, but the branch has no commits and `git remote -v` returned no remote. Older project notes calling this “not a Git repository” are stale. Keep object locks; do not assume a remote or publish changes.
+- Earlier in-sandbox commands could not open DNS sockets (`Operation not permitted`) and `curl` reported name-resolution failure; this did not establish a device-wide DNS outage. The reusable source probe resolved all configured hosts and received HTTP 200 from GitHub, PyPI, CFTC's COT reports page, CFTC PRE's filtered Disaggregated Futures Only GOLD query (one row, report date 2026-11-17), and Yahoo's GLD five-day chart query. The targeted Stooq GLD endpoint returned an HTML JavaScript challenge rather than CSV. Alpha Vantage's landing page returned HTTP 200, but its data API was not queried without a user key. FRED returned a Python `urllib` read timeout, while `curl` returned HTTP 200 from another resolved CDN edge IP; verify the actual configured FRED client before depending on it. No market snapshot was saved. Course materials identify Yahoo Finance for daily ETF prices, FRED for macro series, and Stooq as an index reference; the rubric asks for a source beyond Yahoo/FRED for the extra source point.
+- Fresh `uv sync --locked --extra dev` runs passed twice in CPython 3.13.9 using disposable environments and previously empty temporary uv caches; project, dev, Jupyter, `nbformat` imports and the XNYS session check for 2024-07-03 passed, then the temporary paths were removed. A run from inside the sandbox failed to resolve `files.pythonhosted.org`, confirming that clean setup depends on the execution boundary. This does not run tests or start the notebook server.
+- The latest local suite was recorded as 34 passed and 2 opt-in E2E skipped. This is fixture/code evidence, not a financial-result claim.
+- `.git` exists, `origin` is configured as `https://github.com/dataengy/my-smaz-26-capstone.git`, and this isolated worktree is on `codex/time-simulation-acceptance-2026-11-21` at `bd2454d`. User supplied `43e768f` as the previous last commit; the branch's local base includes the subsequently created `.worktrees/` ignore commit. Keep object locks and don't publish changes without a working connection.
 
 ## Ordered plan
 
@@ -19,12 +20,13 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 
 **Owner:** Orchestrator / data engineer. **Backlog:** P0 “Restore and verify source access.”
 
-- In a fresh run, check DNS and HTTPS access to CFTC, Yahoo Finance and PyPI, then make only small metadata or bounded source requests to establish whether each provider is usable.
-- Record date, commands, response/failure, provider terms and any rate-limit information that is actually published. Do not treat web-search access as proof that runtime downloads work.
-- If access works, proceed to step 2 and retrieve only required inputs with source URL, retrieval/request-start times, schema checks and SHA-256 provenance. Keep snapshots under ignored `data/`.
-- If access fails, record the concrete error and leave acquisition blocked. Continue steps 3 and 4 where local dependencies permit; do not fabricate or substitute market data.
+- Repeat bounded source diagnostics with `python3 scripts/check_external_access.py`; use `--only <name>` for one endpoint and never auto-retry HTTP 429. The FRED check now falls back to bounded `curl` after an `urllib` timeout and reports client-specific discrepancy separately. The sandbox may block DNS sockets even when the approved host network works. Yahoo and one-row GOLD COT HTTP requests have now succeeded; this is endpoint smoke evidence, not a saved or validated acquisition snapshot.
+- The 2026 course rubric names yfinance and FRED as lecture sources and awards an extra source point for a source beyond them; its data-source README links to the notebook rather than prescribing one provider. The notebook uses yfinance for ETF daily history, FRED via `pandas_datareader` for macro series, points to Stooq for index references, and mentions Alpha Vantage in its paid-data section. See [course rubric](https://github.com/DataTalksClub/stock-markets-analytics-zoomcamp/blob/main/projects/README.md), [module README](https://github.com/DataTalksClub/stock-markets-analytics-zoomcamp/blob/main/01-intro-and-data-sources/README.md), and [2026 data-source notebook](https://github.com/DataTalksClub/stock-markets-analytics-zoomcamp/blob/main/01-intro-and-data-sources/%5B2026%5D_Module_01_Colab_Introduction_and_Data_Sources.ipynb).
+- Keep CFTC as the preferred COT authority: PRE API and downloadable COT archives draw from the same source data. One filtered GOLD API record was read, but a complete archive/snapshot and report-specific publication availability still need validation. Yahoo returned a small GLD chart response. Stooq's short GLD request returned a browser challenge, so its data are not currently usable through the checked endpoint. Alpha Vantage's API requires a key not configured here. FRED's landing page is reachable via `curl` (HTTP 200) while Python `urllib` times out; this does not verify series API access or vintage suitability, and FRED remains deferred until release availability and vintages are established. Before adopting a fallback, verify GLD/SLV coverage, OHLCV schema, adjustment/dividend semantics, history, rate limits, terms and point-in-time suitability. A provider with a reachable homepage but unusable data endpoint is not an acceptable fallback.
+- Record date, exact commands, per-host response/failure, provider terms and only published rate-limit details. Web access or a notebook run in another environment does not prove runtime access here. If a connected machine is used to export snapshots, preserve original provider files, retrieval times, URLs, checksums and terms; do not commit market data.
+- If a specific endpoint remains unusable, document the concrete layer/status and assess an alternative for source fit, rights and point-in-time behavior. Continue local deterministic QA and code work. Repeat the complete clean dev installation with `python3 scripts/check_clean_install.py` when needed; the verified run used a fresh empty cache. Do not fabricate or silently substitute data.
 
-**Gate:** Valid GLD/SLV and required market snapshots are locally available with provenance, or the access blocker is freshly documented.
+**Gate:** Valid GLD/SLV and required market snapshots are locally available with provenance, or each provider's current access blocker and evaluated fallback are documented.
 
 ### 2. Establish enough report-specific COT availability evidence
 
@@ -55,7 +57,7 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 - Run `make verify`, inspect opt-in skips, then run the origin-clone E2E only with an explicitly configured disposable local origin. Keep generated environments, caches, data and artifacts ignored.
 - If registry access remains unavailable, record exact commands and failures; do not describe a warm-cache install as a clean install.
 
-**Gate:** Clean locked setup and documented command path pass, or the unavailable prerequisite and unverified stages are clearly recorded.
+**Gate:** Clean locked dev installation passed in a disposable environment. Remaining: run the full verification suite from that clean environment and verify notebook startup; keep origin and real-data E2E opt-in gates explicit.
 
 ### 5. Run and replay the real experiment
 
@@ -77,7 +79,7 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 
 ## Coordination and stop conditions
 
-- Use `scripts/object_lock.py` for exact shared objects before edits. The current checkout is on an unborn `main` branch with no remote; use a worktree only if Git can create a genuinely isolated worktree, otherwise queue conflicting writers.
+- Use `scripts/object_lock.py` for exact shared objects before edits. Preserve isolation in the current feature worktree; do not move the shared checkout or merge other sessions' uncommitted changes into this branch.
 - Keep `PARALLEL_SESSION_PROMPTS.md` claim states and object-lock ownership aligned. Release only locks acquired by the current session after handoff.
 - Never commit downloaded data, secrets, environments or generated research artifacts. Never claim a test, integration, data retrieval, metric or course outcome without recorded evidence.
 - Reconsider optional dashboards, MLflow/Langfuse, Dagster, CI, Docker, cloud and RAG only after a verified core run or a specific demonstrated need.
