@@ -4,11 +4,11 @@ Updated: 2026-11-21. The [backlog](BACKLOG.md) owns remaining work; the [next st
 
 - **Research:** No real market snapshots, model results, backtest results, or profitability conclusions have been produced.
 - **COT:** Four 2023 report dates have evidenced conservative availability cutoffs; this is insufficient for the planned experiment. See [COT release evidence](../docs/COT_RELEASE_EVIDENCE.md).
-- **Environment:** `uv.lock` exists; a fresh cloned environment installed the locked `test` extra offline from the local uv cache. Clean installation of the `dev`/notebook extra remains unverified.
-- **Checks:** Latest full suite: see the verification record below. The real-data E2E and origin-clone E2E skip unless their environment variables are set. The origin-clone E2E also passed separately against a temporary local Git origin. Offline lock check passed. Fixture, integration, synthetic demo and clone tests do not validate the full real-data workflow or a published remote.
-- **Access:** A fresh read-only probe again failed DNS for CFTC and Yahoo; no financial data were downloaded. Provider access remains a current blocker, not a claim of permanent unavailability.
+- **Environment:** Two approved fresh-cache installs of `uv.lock` with the `dev` extra passed in disposable CPython 3.13.9 environments, including imports, `nbformat` and the XNYS 2024-07-03 session check. Notebook startup remains unverified.
+- **Checks:** Latest merged-branch `just verify`: 39 passed, 2 skipped, 43 warnings (see the verification record below). The real-data and origin-clone E2E checks skipped because their opt-in variables were unset. These software/fixture checks do not establish the full real-data workflow or financial results.
+- **Access:** The sandbox denied DNS socket calls, while approved probes outside it resolved GitHub, CFTC, Yahoo, PyPI, FRED, Stooq and Alpha Vantage. CFTC PRE returned one GOLD row and Yahoo returned a bounded GLD chart sample. A targeted probe again showed Python `urllib` timing out for FRED while bounded `curl` got HTTP 200 from `104.96.153.18`; this is a client-specific discrepancy and does not verify FRED's series API or vintage suitability. Stooq returned an HTML JavaScript challenge instead of CSV. These were reachability checks only; no financial data were downloaded. Alpha Vantage's data API was not queried without a key. Sandbox Yahoo DNS failures may differ from the approved probe boundary.
 - **Agent tooling:** Role descriptions, project skill drafts and a human-readable OpenSpec baseline exist. Skill auto-discovery and OpenSpec CLI validation are not confirmed. Local token usage reporting is experimental and incomplete.
-- **Version control:** This directory is not currently a Git repository; there is no commit history to audit or stage.
+- **Version control:** This is a Git repository with `origin` configured. This change is isolated in the `codex/time-simulation-acceptance-2026-11-21` worktree; keep the main checkout's separate uncommitted user changes out of this branch.
 
 ## Synthetic human demo verification — 2026-11-21
 
@@ -29,6 +29,10 @@ Updated: 2026-11-21. The [backlog](BACKLOG.md) owns remaining work; the [next st
 - Added a hand-calculated event simulation regression test: same-session exits must occur before entries, proceeds fund two new lots, cash stays nonnegative, and the fixture ends at 120 from 100 with zero costs. Focused backtest tests: **7 passed**; full `make test`: **36 passed, 2 skipped**, 15 deprecation warnings.
 - The flat-price fee fixture now asserts the exact long/cash net return after both entry and exit costs, including the smaller second-lot budget after entry costs reduce marked equity; the buy-and-hold benchmark retains its separately calculated same-period two-sided-cost assertion.
 - Ran the fresh-clone E2E against the local committed checkout with `CAPSTONE_E2E_ORIGIN=.`. Online mode failed when isolated build setup attempted to reach PyPI for `setuptools>=75` and DNS was unavailable. Retrying with `UV_OFFLINE=1` and the shared uv cache passed: **1 passed in 63.25s**. This validates the committed checkout in a fresh clone using cached dependencies; it does not install the current uncommitted test addition, validate a published remote, or prove an uncached clean install.
+
+## PR branch verification — 2026-11-21
+
+- The first `just verify` in the feature worktree stopped because its local `.run/venv` did not contain pytest. After merging current `origin/main`, `just verify` passed with `UV_PROJECT_ENVIRONMENT` pointed at the already installed dev environment: doctor, offline lock check and compilation passed; tests reported **39 passed, 2 skipped, 43 warnings**. Skips were opt-in origin-clone and real-data E2E tests. The earlier pre-merge suite had 34 passed, 2 skipped. No real data or experiment results were produced.
 
 ## Current execution wave
 
