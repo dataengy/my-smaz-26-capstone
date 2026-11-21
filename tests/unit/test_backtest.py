@@ -14,7 +14,12 @@ def test_costs_and_cash_accounting_on_flat_prices():
     assert equity.cash.min() >= -1e-10
     assert len(result['trades'].query("strategy == 'long_cash' and side == 'buy'")) == 2
     assert len(result['trades'].query("strategy == 'long_cash' and side == 'sell'")) == 2
-    assert metrics.loc['long_cash', 'total_return'] < 0
+    expected_lot_return = .99 / 1.01 - 1
+    first_budget = 100. / (2 * 5)
+    marked_equity_after_first_entry = 100. - first_budget * (1. - 1. / 1.01)
+    second_budget = marked_equity_after_first_entry / (2 * 5)
+    expected_long_cash_return = ((first_budget + second_budget) / 100.) * expected_lot_return
+    assert metrics.loc['long_cash', 'total_return'] == pytest.approx(expected_long_cash_return)
 
 
 def test_missing_price_rejected():
@@ -64,6 +69,33 @@ def test_overlapping_positions_cannot_spend_more_cash_than_available():
     curve = result['equity'].query("strategy == 'long_cash'")
     assert curve.cash.min() == pytest.approx(0.)
     assert curve.equity.iloc[-1] == pytest.approx(1090.)
+
+
+def test_exits_release_cash_before_same_session_reinvestment():
+    dates = pd.bdate_range('2024-01-02', periods=3)
+    signals = pd.DataFrame([
+        {'split': 'test', 'ticker': ticker, 'entry_date': dates[i],
+         'exit_date': dates[i + 1], 'prediction': .1}
+        for i in range(2) for ticker in ('GLD', 'SLV')
+    ])
+    prices = pd.DataFrame([
+        {'date': date, 'ticker': ticker, 'adjusted_open': price}
+        for date, price in zip(dates, (100., 110., 120.))
+        for ticker in ('GLD', 'SLV')
+    ])
+
+    result = run_backtest(signals, prices, {
+        'initial_capital': 100., 'cost_bps': 0, 'holding_sessions': 1,
+    })
+
+    events = result['trades'].query(
+        "strategy == 'long_cash' and date == @dates[1]"
+    )
+    assert events.side.tolist() == ['sell', 'sell', 'buy', 'buy']
+    assert events.cash_flow.tolist() == pytest.approx([55., 55., -55., -55.])
+    curve = result['equity'].query("strategy == 'long_cash'")
+    assert curve.cash.min() == pytest.approx(0.)
+    assert curve.equity.iloc[-1] == pytest.approx(120.)
 
 
 def test_rejects_infinite_prices_before_simulation():

@@ -11,6 +11,8 @@ make download       # network access; fetch configured sources
 make features       # build the analytical table from local snapshots
 make run            # offline research workflow; requires downloaded snapshots
 make run-notebook   # starts Jupyter for notebooks/workflow.ipynb
+make demo-synthetic # generate ignored synthetic inputs and a visual HTML walkthrough
+make test-demo-synthetic # verify the offline human-demo workflow
 make test
 make test-unit
 make test-integration
@@ -19,6 +21,7 @@ make e2e-origin     # opt-in; requires CAPSTONE_E2E_ORIGIN
 make e2e-real       # opt-in; requires CAPSTONE_E2E_CONFIG
 make hooks
 make install-hooks
+make periodic-install  # optional macOS schedule; see the dedicated guide
 make usage          # experimental local Codex metadata summary
 ```
 
@@ -37,7 +40,12 @@ python3 scripts/check_clean_install.py
 
 The source probe records DNS and bounded HTTPS outcomes for GitHub, PyPI, CFTC, Yahoo Finance, FRED, Stooq and Alpha Vantage; it reads at most 8 KiB per response, checks the CFTC/Yahoo/CSV response shapes, saves no market data and does not retry HTTP 429. If Python `urllib` times out on the FRED landing page, it runs a bounded `curl` request that discards the body and records HTTP status and remote IP separately. This distinguishes a client/CDN-edge discrepancy from host unavailability; it does not validate FRED API access or point-in-time suitability. Its Stooq request is limited to a short recent GLD daily sample. `--only` can be repeated to select endpoints; `--timeout` sets the per-request timeout. Run it in the same network boundary as the acquisition workflow. A sandbox socket denial is not evidence of a device-wide DNS outage. The clean-install check uses `uv.lock` and the `dev` extra in a temporary environment with a new temporary uv cache, verifies imports, notebook-format support and an XNYS session, then removes both temporary paths. It does not run tests or download project market snapshots.
 
+The synthetic demo uses deterministic fictional market and COT-shaped inputs, then exercises the real feature, model-selection and simulation code. It does not call providers and its metrics are not research results. Open `artifacts/synthetic-demo/index.html` after `make demo-synthetic`; see [Synthetic human demo](SYNTHETIC_DEMO.md) for details.
+
+Change the schedule with `make periodic-install PERIODIC_INTERVAL_MINUTES=60`. The `periodic-uninstall` and `periodic-run` targets remove or run the task. See the [periodic commit and push guide](PERIODIC_COMMIT_PUSH.md) for its safeguards and behavior.
+
 The Justfile provides supporting, multi-step or agentic operations. Install [just](https://just.systems/) for these targets:
+
 
 ```sh
 just --list

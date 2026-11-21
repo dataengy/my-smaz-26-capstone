@@ -6,8 +6,7 @@ Copy a prompt below for a single session. These are scoped work packages, not a 
 
 | Prompt | Status | Owner/session | Started | Handoff/evidence |
 |---|---|---|---|---|
-| H — QA engineer: independent acceptance review | **Completed** | Session (`codex-worktree-20261121`) | 2026-11-21 | Added [hand-calculated financial acceptance cases](../tests/integration/test_financial_acceptance.py) for holdout-only orders, both-side fees, same-period benchmark, and duplicate execution prices. Targeted tests: **2 passed**; full suite: **34 passed, 2 opt-in E2E skipped**, 13 deprecation warnings. Shell DNS probes to CFTC, Yahoo and PyPI all failed; real-data checks remain blocked. |
-| C — Data engineer: acquisition and COT snapshots | **In progress** | Session (`УНИКАЛЬНЫЙ_SESSION_ID-1`) | 2026-11-21 | Claim recorded by `just take-next-prompt`; handoff pending |
+| C — Data engineer: acquisition and COT snapshots | **Completed** | Session (`УНИКАЛЬНЫЙ_SESSION_ID-1`) | 2026-11-21 | [Ingestion review and verification](STATUS.md#prompt-c--data-ingestion) |
 | A — System analyst: source and timing contract | **Completed** | Session (`codex-next-20261121`) | 2026-11-21 | Updated [COT source and timing evidence](../docs/COT_RELEASE_EVIDENCE.md) and its [Russian mirror](../docs/COT_RELEASE_EVIDENCE.ru.md), plus a named source/timing contract in the [spec](../openspec/specs/capstone/spec.md#source-and-timing-contract-reviewed-2026-11-21). Official CFTC, NYSE and yfinance docs reviewed; no market data downloaded and no release manifest rows added. `git diff --check` produced no whitespace errors; no tests were applicable to this documentation/spec review. |
 | B — YAML configuration contract | **Completed** | Orchestrator (`codex-config-implementation-2026-11-21`) | 2026-11-21 | [Config acceptance evidence](STATUS.md#current-execution-wave); full real-data run remains separately blocked on snapshots |
 

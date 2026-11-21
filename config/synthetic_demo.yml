@@ -1,0 +1,13 @@
+# Fully synthetic settings for the local human-demo command only.
+# These generated source-shaped rows are not market observations or experiment data.
+seed: 2026
+sessions: 140
+start_date: '2024-01-02'
+market_start_price: 100.0
+source_dir: data/synthetic/human-demo
+output_dir: artifacts/synthetic-demo
+open_browser: false
+ridge_alphas: [1.0]
+tree_depths: [3]
+forest_estimators: 12
+forest_depths: [3]

@@ -139,10 +139,14 @@ def parse_cot_archive(payload: bytes) -> pd.DataFrame:
         raise ValueError(f"CFTC archive missing columns: {sorted(missing)}")
     codes = raw["CFTC_Contract_Market_Code"].astype(str).str.strip().str.zfill(6)
     out = raw.loc[codes.isin(["088691", "084691"])].copy()
+    if out.empty:
+        raise ValueError("CFTC archive contains no COMEX gold or silver records")
     out["ticker"] = codes.loc[out.index].map({"088691": "GLD", "084691": "SLV"})
     out = out.rename(columns={"Report_Date_as_YYYY-MM-DD": "report_date", "Open_Interest_All": "open_interest",
         "M_Money_Positions_Long_All": "managed_long", "M_Money_Positions_Short_All": "managed_short",
         "Prod_Merc_Positions_Long_All": "producer_long", "Prod_Merc_Positions_Short_All": "producer_short"})
+    if out.duplicated(["ticker", "report_date"]).any():
+        raise ValueError("Duplicate COT ticker/report dates in archive")
     cols = ["ticker", "report_date", "open_interest", "managed_long", "managed_short", "producer_long", "producer_short"]
     return out[cols]
 
@@ -171,8 +175,12 @@ def load_release_manifest(path: str | Path) -> pd.DataFrame:
     return manifest
 
 
-def refresh_sources(config: dict) -> None:
-    """Download snapshots without requiring a completed release evidence manifest."""
+def refresh_sources(config: dict) -> dict[str, str]:
+    """Download snapshots and report optional market sources that failed.
+
+    Existing optional snapshots are left on disk for intentional offline replay,
+    but callers can avoid mistaking one for a successful refresh in this run.
+    """
     start = config.get("start", "2018-01-01")
     end = config.get("end")
     root = Path(config.get("data_dir", "data")) / "raw"
@@ -181,6 +189,7 @@ def refresh_sources(config: dict) -> None:
     cftc_timeout = int(config.get("cftc_download_timeout_seconds", 45))
     if market_timeout < 1 or cftc_timeout < 1:
         raise ValueError("Download timeouts must be positive")
+    failures: dict[str, str] = {}
     for name, symbol in symbols.items():
         path = root / "market" / f"{_safe_symbol(name)}.csv"
         try:
@@ -191,6 +200,7 @@ def refresh_sources(config: dict) -> None:
         except (ValueError, RuntimeError, OSError) as exc:
             if name in required:
                 raise RuntimeError(f"Required market data {name} unavailable: {exc}") from exc
+            failures[name] = f"{type(exc).__name__}: {exc}"
             print(f"Optional market data {name} unavailable: {exc}")
     first = pd.Timestamp(start).year
     last = (pd.Timestamp(end) - pd.Timedelta(days=1)).year if end else date.today().year
@@ -200,6 +210,7 @@ def refresh_sources(config: dict) -> None:
             payload = response.read()
         parse_cot_archive(payload)  # Refuse to cache an invalid response.
         _write_snapshot(root / "cftc" / f"{year}.zip", payload, url)
+    return failures
 
 
 def load_sources(config: dict, refresh: bool = False) -> dict[str, pd.DataFrame]:
@@ -208,14 +219,18 @@ def load_sources(config: dict, refresh: bool = False) -> dict[str, pd.DataFrame]
     start is inclusive and end is exclusive. Optional markets can be unavailable;
     their absence is reported, while missing required series or COT data fails.
     """
+    refresh_failures = {}
     if refresh:
-        refresh_sources(config)
+        refresh_failures = refresh_sources(config) or {}
     start = config.get("start", "2018-01-01")
     end = config.get("end")
     root = Path(config.get("data_dir", "data")) / "raw"
     symbols, required = _active_symbols(config)
     result = {}
     for name, symbol in symbols.items():
+        if name in refresh_failures:
+            # Do not silently replace this run's failed refresh with an older cache.
+            continue
         path = root / "market" / f"{_safe_symbol(name)}.csv"
         try:
             frame = pd.read_csv(io.BytesIO(_read_snapshot(path)), parse_dates=["date"])
