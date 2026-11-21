@@ -96,6 +96,10 @@ The preceding user-run source smoke passed for all configured Yahoo symbols, Bin
 - The flat-price fee fixture now asserts the exact long/cash net return after both entry and exit costs, including the smaller second-lot budget after entry costs reduce marked equity; the buy-and-hold benchmark retains its separately calculated same-period two-sided-cost assertion.
 - Ran the fresh-clone E2E against the local committed checkout with `CAPSTONE_E2E_ORIGIN=.`. Online mode failed when isolated build setup attempted to reach PyPI for `setuptools>=75` and DNS was unavailable. Retrying with `UV_OFFLINE=1` and the shared uv cache passed: **1 passed in 63.25s**. This validates the committed checkout in a fresh clone using cached dependencies; it does not install the current uncommitted test addition, validate a published remote, or prove an uncached clean install.
 
+## PR branch verification — 2026-11-21
+
+- The first `just verify` in the feature worktree stopped because its local `.run/venv` did not contain pytest. After merging current `origin/main`, `just verify` passed with `UV_PROJECT_ENVIRONMENT` pointed at the already installed dev environment: doctor, offline lock check and compilation passed; tests reported **39 passed, 2 skipped, 43 warnings**. Skips were opt-in origin-clone and real-data E2E tests. The earlier pre-merge suite had 34 passed, 2 skipped. No real data or experiment results were produced.
+
 ## Current execution wave
 
 ### Prompt C — Data ingestion

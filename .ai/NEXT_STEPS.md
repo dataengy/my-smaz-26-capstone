@@ -23,8 +23,10 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 - Record date, commands, response/failure, provider terms and any rate-limit information that is actually published. Do not treat web-search access as proof that runtime downloads work.
 - If access works, proceed to step 2 and retrieve only required inputs with source URL, retrieval/request-start times, schema checks and SHA-256 provenance. Keep snapshots under ignored `data/`.
 - If access fails, record the concrete error and leave acquisition blocked. Continue steps 3 and 4 where local dependencies permit; do not fabricate or substitute market data.
+- Repeat bounded source diagnostics with `python3 scripts/check_external_access.py`; use `--only <name>` for one endpoint and never auto-retry HTTP 429. The FRED check now falls back to bounded `curl` after an `urllib` timeout and reports client-specific discrepancy separately. The sandbox may block DNS sockets even when the approved host network works. Yahoo and one-row GOLD COT HTTP requests have now succeeded; this is endpoint smoke evidence, not a saved or validated acquisition snapshot.
+- If a specific endpoint remains unusable, document the concrete layer/status and assess an alternative for source fit, rights and point-in-time behavior. Continue local deterministic QA and code work. Repeat the complete clean dev installation with `python3 scripts/check_clean_install.py` when needed; the verified run used a fresh empty cache. Do not fabricate or silently substitute data.
 
-**Gate:** Valid GLD/SLV and required market snapshots are locally available with provenance, or the access blocker is freshly documented.
+**Gate:** Valid GLD/SLV and required market snapshots are locally available with provenance, or each provider's current access blocker and evaluated fallback are documented.
 
 ### 2. Establish enough report-specific COT availability evidence
 
@@ -55,7 +57,7 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 - Run `make verify`, inspect opt-in skips, then run the origin-clone E2E only with an explicitly configured disposable local origin. Keep generated environments, caches, data and artifacts ignored.
 - If registry access remains unavailable, record exact commands and failures; do not describe a warm-cache install as a clean install.
 
-**Gate:** Clean locked setup and documented command path pass, or the unavailable prerequisite and unverified stages are clearly recorded.
+**Gate:** Clean locked dev installation passed in a disposable environment. Remaining: run the full verification suite from that clean environment and verify notebook startup; keep origin and real-data E2E opt-in gates explicit.
 
 ### 5. Run and replay the real experiment
 
@@ -77,7 +79,7 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 
 ## Coordination and stop conditions
 
-- Use `scripts/object_lock.py` for exact shared objects before edits. The current checkout is on an unborn `main` branch with no remote; use a worktree only if Git can create a genuinely isolated worktree, otherwise queue conflicting writers.
+- Use `scripts/object_lock.py` for exact shared objects before edits. Preserve isolation in the current feature worktree; do not move the shared checkout or merge other sessions' uncommitted changes into this branch.
 - Keep `PARALLEL_SESSION_PROMPTS.md` claim states and object-lock ownership aligned. Release only locks acquired by the current session after handoff.
 - Never commit downloaded data, secrets, environments or generated research artifacts. Never claim a test, integration, data retrieval, metric or course outcome without recorded evidence.
 - Reconsider optional dashboards, MLflow/Langfuse, Dagster, CI, Docker, cloud and RAG only after a verified core run or a specific demonstrated need.
