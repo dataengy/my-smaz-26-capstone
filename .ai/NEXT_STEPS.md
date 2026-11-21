@@ -8,10 +8,10 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 
 ## Current gates
 
-- No real market snapshots or empirical experiment are recorded. Four COT report dates from the 2023 ION disruption have conservative eligibility cutoffs; this is not enough for the intended train/validation/holdout study. See [COT publication evidence](../docs/COT_RELEASE_EVIDENCE.md).
-- Shell DNS to CFTC, Yahoo and package indexes has failed in the latest recorded checks. Core dependencies and `uv.lock` exist, but clean installation of development/notebook extras and full notebook execution are not verified.
-- The full local suite was last recorded as 32 passed and 2 opt-in E2E skipped. This is fixture/code evidence, not data-source or financial-result evidence.
-- `.git` exists and `git worktree list` shows this working directory on `main`, but the branch has no commits and `git remote -v` returned no remote. Older project notes calling this “not a Git repository” are stale. Keep object locks; do not assume a remote or publish changes.
+- The configured `make download` produced 10 market CSVs and 9 CFTC archives with valid SHA-256 sidecars; all archives parse, and the latest cache-aware validation accepted target rows through 2026-11-20. The manifest now has nine report-specific evidenced publication dates, but the COT-gated table has only 31 distinct signal dates. See [COT publication evidence](../docs/COT_RELEASE_EVIDENCE.md).
+- The intended `.run/venv` uses Python 3.12 with yfinance 0.2.66 and Peewee 3.19.0. The CFTC 403 was traced to default `urllib` headers and fixed with a provider-accepted User-Agent; the full configured `make download` completed. Three market series still have null latest close values. The notebook workflow and full research run remain unverified.
+- Latest recorded `just verify` passed **42 tests, 2 skipped, 43 warnings**; those software checks do not establish financial results. The COT-inclusive `make run` stops at its 40-labeled-date minimum. A separate market-only diagnostic has a purged holdout and is documented in [EDA findings](../docs/EDA_FINDINGS.md); it cannot assess COT's incremental value.
+- Git is on `main`, synchronized with local `origin/main` at inspection; the configured remote is `https://github.com/dataengy/my-smaz-26-capstone.git`. Do not treat local tracking state as a fresh network verification. Keep object locks and preserve other sessions' changes.
 
 ## Ordered plan
 
@@ -19,7 +19,7 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 
 **Owner:** Orchestrator / data engineer. **Backlog:** P0 “Restore and verify source access.”
 
-- In a fresh run, check DNS and HTTPS access to CFTC, Yahoo Finance and PyPI, then make only small metadata or bounded source requests to establish whether each provider is usable.
+- First synchronize the intended Python 3.12 `.run/venv` explicitly (for example `UV_PROJECT_ENVIRONMENT=.run/venv UV_CACHE_DIR=.run/uv-cache uv sync --locked --extra dev --python 3.12`), then check DNS and HTTPS access to CFTC, Yahoo Finance and PyPI with small metadata or bounded source requests. Do not confuse the successful `.venv` dependency install with a successful data download.
 - Record date, commands, response/failure, provider terms and any rate-limit information that is actually published. Do not treat web-search access as proof that runtime downloads work.
 - If access works, proceed to step 2 and retrieve only required inputs with source URL, retrieval/request-start times, schema checks and SHA-256 provenance. Keep snapshots under ignored `data/`.
 - If access fails, record the concrete error and leave acquisition blocked. Continue steps 3 and 4 where local dependencies permit; do not fabricate or substitute market data.
@@ -81,3 +81,17 @@ Complete a locally reproducible, point-in-time study of five-session GLD/SLV ret
 - Keep `PARALLEL_SESSION_PROMPTS.md` claim states and object-lock ownership aligned. Release only locks acquired by the current session after handoff.
 - Never commit downloaded data, secrets, environments or generated research artifacts. Never claim a test, integration, data retrieval, metric or course outcome without recorded evidence.
 - Reconsider optional dashboards, MLflow/Langfuse, Dagster, CI, Docker, cloud and RAG only after a verified core run or a specific demonstrated need.
+
+## Latest follow-up evidence — 2026-11-21
+
+- `make test-source-smoke` passed **2 checks** across configured market sources and CFTC archives/evidence page. All 19 existing market/CFTC snapshots passed SHA-256 sidecar checks.
+- Offline feature generation created a 30-row table for 2023-02-27–2023-03-17; preliminary distributions and correlations are in [EDA findings](../docs/EDA_FINDINGS.md). The four-row release manifest remains the limiting gate. A subsequent online feature refresh failed DNS for `guce.yahoo.com`; do not treat the preflight pass as proof that full downloads or refreshed data succeeded.
+- The next research prerequisite remains expanding report-specific COT publication evidence and validating sufficient historical coverage. Only after that, run broad EDA and chronological purged evaluation; the 30-row descriptive sample is not a model-selection or performance result.
+
+The follow-up above supersedes older notes in this file that referred to four COT dates, null target closes, or a 30-row feature table. Current evidence: nine supported COT dates, 62 COT-gated feature rows / 31 signal dates, full-history market EDA, and a purged market-only holdout; the COT-inclusive model and cost-aware holdout strategy remain unrun.
+
+## Follow-up — 2026-11-21
+
+- The official CFTC special-announcements page supports three additional actual 2023 delayed releases when paired with the stated ordinary previous-Tuesday report relationship. `config/release_dates.csv` now contains nine dates. The offline COT-gated feature table contains 62 rows and 31 distinct signal dates; the standard run refuses modeling below its configured 40-date minimum.
+- Local market snapshots span 2018–2026 with valid hashes and no duplicate dates/null closes or volumes in the ten configured files. Full market EDA is recorded in [`docs/EDA_FINDINGS.md`](../docs/EDA_FINDINGS.md).
+- A purged market-only holdout was run to use that broad history while excluding unsupported COT joins. It is interim evidence only; next blocker is finding enough report-specific CFTC publication evidence to evaluate COT-inclusive features on train/validation/holdout. The CFTC states a complete historical release-date list is not available.

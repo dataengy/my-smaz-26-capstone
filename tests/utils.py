@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import pytest, subprocess
+import subprocess
 from pathlib import Path
+
+import pytest
 
 
 def _run(command: list[str], *, cwd: Path, env: dict[str, str], timeout: int) -> subprocess.CompletedProcess[str]:

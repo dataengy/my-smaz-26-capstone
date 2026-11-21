@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -56,6 +57,9 @@ def execute(config, refresh=False, stage='run'):
     from .backtest import run_backtest, run_vectorized_backtest
     import joblib
     result = fit_predict(frame, numeric_features(config), config)
+    result['model_comparison'].to_csv(output / 'model_comparison.csv', index=False)
+    print('Model comparison: validation only; selected by minimum MAE (returns in decimal units).')
+    print(result['model_comparison'].to_string(index=False))
     predictions = result['predictions']
     prices = []
     for ticker in config['target_symbols']:
@@ -70,6 +74,9 @@ def execute(config, refresh=False, stage='run'):
     save_eda(frame, output)
     predictions.to_csv(output / 'predictions.csv', index=False)
     result['model_metrics'].to_csv(output / 'model_metrics.csv', index=False)
+    result['split_counts'].to_csv(output / 'split_counts.csv', index=False)
+    result['holdout_comparison'].to_csv(output / 'holdout_comparison.csv', index=False)
+    (output / 'threshold_scores.json').write_text(json.dumps(result['threshold_scores'], indent=2) + '\n')
     test_errors = predictions.loc[predictions['split'] == 'test', ['date', 'ticker', 'target', 'prediction']].copy()
     test_errors['error'] = test_errors['prediction'] - test_errors['target']
     test_errors['absolute_error'] = test_errors['error'].abs()
@@ -110,12 +117,17 @@ def main():
     parser.add_argument('--config', default='config/config.yml', help='YAML source and universe configuration')
     parser.add_argument('--settings', help='YAML research settings (defaults to config/settings.yml)')
     parser.add_argument('--offline', action='store_true', help='Read and verify cached snapshots')
+    parser.add_argument('--force', action='store_true', help='Refresh every configured source (download stage only)')
     args = parser.parse_args()
+    if args.force and args.stage != 'download':
+        parser.error('--force is only valid with the download stage')
+    if args.stage == 'download':
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s', datefmt='%H:%M:%S')
     cfg = read_config(args.config, args.settings)
     try:
         if args.stage == 'download':
             from .data import refresh_sources
-            refresh_sources(cfg)
+            refresh_sources(cfg, force=args.force)
         else:
             execute(cfg, refresh=not args.offline, stage=args.stage)
     except (OSError, ValueError, RuntimeError) as exc:

@@ -15,7 +15,7 @@ The project already has a local Python CLI/notebook workflow, Make/Just entry po
 ## Proposed decision
 
 1. Keep the CLI and Make/Just commands as the canonical local workflow.
-2. Do not adopt Prefect or Dagster yet. If repeated execution, asset lineage, freshness, retries/recovery or run visibility become demonstrated needs after a real-data workflow works, prototype **Dagster first** because the work naturally produces named research assets. Select **Prefect instead** if Python flow/task execution is the primary need and an asset catalog does not add value. Do not orchestrate the same stages in both.
+2. Do not adopt Prefect, Dagster, or dlt yet. If repeated execution, asset lineage, freshness, retries/recovery or run visibility become demonstrated needs after a real-data workflow works, prototype **Dagster first** as a thin adapter around the existing Python stages. dlt focuses on extracting, normalizing and loading data into a destination; the current contract instead keeps provider snapshots as local files with SHA-256 metadata and has no warehouse or incremental destination requirement. Consider dlt later only if multi-source extraction, schema evolution or a persistent destination becomes a concrete need. Do not add dlt under Dagster by default or orchestrate the same stages twice.
 3. Evaluate **local MLflow Tracking** when repeated real experiments need comparable parameters, data snapshot identifiers, metrics and artifacts. Defer model registry until model lifecycle/deployment needs exist.
 4. Keep the Codex lock watcher as a separate local controller; it must not be a research asset or run the data pipeline.
 5. Defer dbt/MetricFlow, DVC, Feast, Evidently, Prometheus/Grafana and Telegram alerts until their specific conditions in the assessment are met.
@@ -35,6 +35,10 @@ Its asset-oriented UI is a strong match for source snapshots, validated inputs, 
 ### Adopt Prefect immediately
 
 Prefect offers flow/task execution, schedules and a run UI, and is a sensible flow-centric alternative. The current assessment prefers Dagster only if future needs center on data assets and lineage.
+
+### Add dlt under Dagster now
+
+dlt can load Python data structures and custom sources into destinations, and its documented Dagster integration can expose dlt sources as assets. The project currently needs reproducible local snapshots, source-specific validation, point-in-time availability rules and offline replay; it does not need a destination warehouse or dlt's normalization/state layer. Adding both tools now would overlap the existing downloader and add setup without replacing the project's research-specific checks.
 
 ### Adopt the entire proposed tool list
 

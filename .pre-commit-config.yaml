@@ -1,5 +1,18 @@
 minimum_prek_version: "0.5.10"
 repos:
+  - repo: https://github.com/lycheeverse/lychee.git
+    rev: lychee-v0.24.2
+    hooks:
+      - id: lychee
+        args: [--no-progress]
+        types: [markdown]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.5
+    hooks:
+      - id: ruff-check
+        args: ["--select=E4,E7,E9,F"]
+        types: [python]
+        files: ^(src|scripts)/.*\.py$
   - repo: builtin
     hooks:
       - id: trailing-whitespace
@@ -13,3 +26,16 @@ repos:
       - id: check-toml
       - id: check-yaml
       - id: detect-private-key
+  - repo: local
+    hooks:
+      - id: markdown-local-links
+        name: Check local links in Markdown files
+        entry: python3 scripts/check_markdown_links.py
+        language: system
+        types: [markdown]
+      - id: pytest-fast
+        name: Run fast unit, integration, and smoke tests
+        entry: make verify-fast
+        language: system
+        types: [python]
+        pass_filenames: false

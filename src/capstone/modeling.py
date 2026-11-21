@@ -1,10 +1,13 @@
 """Chronological model selection and genuinely held-out predictions.
 
 ``fit_predict(frame, numeric_features, config=None)`` returns predictions, metrics,
-selection metadata and the fitted estimator. Fractions split distinct session dates;
+validation candidate comparison, selection metadata and the fitted estimator.
+Fractions split distinct session dates;
 any label ending on or after the next partition's first signal is purged.
 """
 from __future__ import annotations
+
+import json
 
 import numpy as np
 import pandas as pd
@@ -95,6 +98,12 @@ def fit_predict(frame, numeric_features, config=None):
         score_rows.append({'model': name, 'split': 'validation', 'mae': float(mean_absolute_error(val.target, p)), 'rmse': float(np.sqrt(mean_squared_error(val.target, p)))})
         fitted[name] = model
     winner = min(score_rows, key=lambda r: r['mae'])['model']
+    comparison = pd.DataFrame([
+        {**row, 'estimator': type(candidates[row['model']]).__name__,
+         'parameters': json.dumps(candidates[row['model']].get_params(deep=False), sort_keys=True),
+         'selected': row['model'] == winner}
+        for row in score_rows
+    ]).sort_values('mae', kind='stable').reset_index(drop=True)
     val_pred = val.copy()
     val_pred['prediction'] = fitted[winner].predict(val[feature_cols])
     val_pred['split'] = 'validation'
@@ -112,12 +121,36 @@ def fit_predict(frame, numeric_features, config=None):
     test_pred['prediction'] = final.predict(test[feature_cols])
     test_pred['split'] = 'test'
     score_rows.append({'model': winner, 'split': 'test', 'mae': float(mean_absolute_error(test.target, test_pred.prediction)), 'rmse': float(np.sqrt(mean_squared_error(test.target, test_pred.prediction)))})
+    # A fixed baseline is scored after selection; it cannot change the winner.
+    baseline = _pipeline(DummyRegressor(strategy='mean'), numeric_features, target_symbols)
+    baseline.fit(pd.concat([train, val])[feature_cols], pd.concat([train, val]).target)
+    baseline_prediction = baseline.predict(test[feature_cols])
+    holdout_comparison = pd.DataFrame([
+        {'model': 'mean', 'mae': float(mean_absolute_error(test.target, baseline_prediction)),
+         'rmse': float(np.sqrt(mean_squared_error(test.target, baseline_prediction)))},
+        {'model': winner, 'mae': score_rows[-1]['mae'], 'rmse': score_rows[-1]['rmse']},
+    ])
+    partitions = []
+    for name, before, after in (
+        ('train', labeled[labeled.date < val_start], train),
+        ('validation', labeled[(labeled.date >= val_start) & (labeled.date < test_start)], val),
+        ('test', test, test),
+    ):
+        for ticker in target_symbols:
+            original = before[before.ticker == ticker]
+            kept = after[after.ticker == ticker]
+            partitions.append({'split': name, 'ticker': ticker, 'rows_before': len(original),
+                               'rows_after': len(kept), 'purged_rows': len(original) - len(kept),
+                               'dates_after': kept.date.nunique(), 'first_signal': kept.date.min(),
+                               'last_signal': kept.date.max(), 'last_exit': kept.exit_date.max()})
     latest = data[data.date == data.date.max()].copy()
     latest['prediction'] = final.predict(latest[feature_cols])
     latest['split'] = 'latest'
     return {'predictions': pd.concat([val_pred, test_pred, latest], ignore_index=True),
             'model_metrics': pd.DataFrame(score_rows), 'selected_model': winner,
+            'model_comparison': comparison,
             'selected_threshold': threshold, 'threshold_scores': threshold_scores,
+            'holdout_comparison': holdout_comparison, 'split_counts': pd.DataFrame(partitions),
             'split_dates': {'validation_start': str(val_start.date()), 'test_start': str(test_start.date()),
                             'train_last_exit': str(train.exit_date.max().date()), 'validation_last_exit': str(val.exit_date.max().date())},
             'estimator': final}

@@ -54,6 +54,8 @@ def run_backtest(predictions, prices, config=None):
     tickers = sorted(signals.ticker.unique())
     if tickers != sorted(cfg.get('target_symbols', ['GLD', 'SLV'])):
         raise ValueError('Test predictions must match configured target symbols')
+    # Validate coverage through the last exit, including sessions with no new
+    # order. Otherwise an open lot could be reported as if the test ended early.
     start, end = signals.entry_date.min(), signals.exit_date.max()
     panel = px[px.ticker.isin(tickers) & px.date.between(start, end)].pivot(index='date', columns='ticker', values='adjusted_open').sort_index()
     if panel.empty or panel.index.min() != start or panel.index.max() != end or not set(tickers).issubset(panel.columns) or not np.isfinite(panel[tickers].to_numpy(dtype=float)).all() or (panel[tickers] <= 0).any().any():
@@ -64,6 +66,8 @@ def run_backtest(predictions, prices, config=None):
     results = []
     for name, limit in [('long_cash', 0.0), ('threshold', threshold), ('buy_hold', None)]:
         cash = capital
+        turnover = paid_costs = 0.0
+        executions = 0
         lots = []
         values = []
         for date, day_prices in panel.iterrows():
@@ -72,10 +76,17 @@ def run_backtest(predictions, prices, config=None):
                     for ticker in tickers:
                         budget = capital / len(tickers)
                         shares = budget / (float(day_prices[ticker]) * (1 + cost))
+                        turnover += budget / (1 + cost)
+                        paid_costs += budget * cost / (1 + cost)
+                        executions += 1
                         cash -= budget
                         lots.append({'ticker': ticker, 'shares': shares, 'exit_date': end})
                 if date == end:
                     for lot in lots:
+                        notional = lot['shares'] * float(day_prices[lot['ticker']])
+                        turnover += notional
+                        paid_costs += notional * cost
+                        executions += 1
                         cash += lot['shares'] * float(day_prices[lot['ticker']]) * (1 - cost)
                     lots = []
             else:
@@ -83,6 +94,10 @@ def run_backtest(predictions, prices, config=None):
                 for lot in lots:
                     if lot['exit_date'] == date:
                         proceeds = lot['shares'] * float(day_prices[lot['ticker']]) * (1 - cost)
+                        notional = lot['shares'] * float(day_prices[lot['ticker']])
+                        turnover += notional
+                        paid_costs += notional * cost
+                        executions += 1
                         cash += proceeds
                         events.append({'strategy': name, 'date': date, 'ticker': lot['ticker'], 'side': 'sell', 'cash_flow': proceeds})
                     else:
@@ -95,6 +110,9 @@ def run_backtest(predictions, prices, config=None):
                     if budget <= 0:
                         continue
                     shares = budget / (float(day_prices[order.ticker]) * (1 + cost))
+                    turnover += budget / (1 + cost)
+                    paid_costs += budget * cost / (1 + cost)
+                    executions += 1
                     cash -= budget
                     lots.append({'ticker': order.ticker, 'shares': shares, 'exit_date': order.exit_date})
                     events.append({'strategy': name, 'date': date, 'ticker': order.ticker, 'side': 'buy', 'cash_flow': -budget})
@@ -102,7 +120,9 @@ def run_backtest(predictions, prices, config=None):
             values.append({'date': date, 'strategy': name, 'equity': equity, 'cash': cash})
         curve = pd.DataFrame(values)
         # Include initial costs in return/drawdown; Sharpe uses actual daily intervals.
-        results.append((curve, {'strategy': name, **_metrics(curve, capital)}))
+        results.append((curve, {'strategy': name, **_metrics(curve, capital),
+                                'gross_traded_notional': turnover, 'transaction_costs': paid_costs,
+                                'executions': executions, 'round_trips': executions // 2}))
     return {'equity': pd.concat([x[0] for x in results], ignore_index=True),
             'metrics': pd.DataFrame([x[1] for x in results]),
             'trades': pd.DataFrame(events, columns=['strategy', 'date', 'ticker', 'side', 'cash_flow'])}

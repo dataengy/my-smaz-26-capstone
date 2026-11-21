@@ -9,13 +9,16 @@ description = "Reproducible, point-in-time precious metals ETF research"
 requires-python = ">=3.11"
 dependencies = [
   "numpy>=2.0,<3", "pandas>=2.2,<3", "scikit-learn>=1.6,<2",
-  "matplotlib>=3.9,<4", "yfinance>=0.2.54,<1", "exchange-calendars>=4.8,<5",
+  "matplotlib>=3.9,<4", "yfinance>=0.2.54,<1", "peewee>=3.16.2,<4",
+  "exchange-calendars>=4.8,<5",
   "PyYAML>=6,<7"
 ]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
 dev = ["pytest>=8,<10", "jupyter>=1.1,<2", "prek==0.5.10"]
+dashboard = ["streamlit>=1.45,<2", "plotly>=6,<8"]
+orchestration = ["dagster>=1.13,<2", "dagster-webserver>=1.13,<2", "dagster-dg-cli>=1.13,<2"]
 
 [project.scripts]
 capstone = "capstone.cli:main"

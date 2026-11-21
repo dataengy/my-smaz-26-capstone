@@ -8,6 +8,27 @@ Support a reviewer in reproducing a cautious investigation of whether COT and cr
 
 ## Requirements
 
+### Requirement: Full-COT experiment evidence
+The acceptance experiment SHALL use frozen real snapshots, confirmed COT releases and at least 500 labeled dates, 150 distinct confirmed reports used, and 1095 days of signal coverage per ETF. After chronological purging, each ETF SHALL retain at least 250 train, 75 validation and 75 holdout dates. These operational minima do not establish statistical power. The existing exploratory CLI remains available; `python -m capstone.research` enforces this acceptance gate.
+
+For post-launch CFTC Public Reporting Environment records, a conservative API availability cutoff MAY be established from official per-row creation timestamps after 2022-10-20. Both target contracts SHALL be present, creation SHALL equal last-update time, and all five modeled position fields SHALL exactly match the verified annual archive. Wait until 05:00 UTC on the day after the later creation timestamp. Retain the raw API response, query, retrieval time, archive hashes and field comparison audit. This establishes conservative API availability, not an assertion of the original static-report publication instant; pre-launch bulk imports and modified/mismatching records SHALL be excluded. See [executed experiment](../../../docs/FULL_RUN.md) for source evidence and limitations.
+
+#### Scenario: Insufficient confirmed history
+- **WHEN** any minimum fails
+- **THEN** persist input hashes and coverage, exit with status 2 before model fitting, and leave full-run acceptance open.
+
+#### Scenario: Frozen experiment and repeat
+- **GIVEN** adequate real confirmed history
+- **WHEN** the acceptance runner executes
+- **THEN** save code/config/snapshot SHA-256, environment versions, commands, per-ETF split/purge counts, validation candidate and threshold scores, fixed mean baseline versus selected model holdout metrics, and capital-aware strategy/benchmark costs and turnover.
+- **AND** execute twice offline using the same frozen inputs and code; accept reproduction only if inputs remain unchanged and all numerical CSV/JSON outputs match exactly. Plots, binary estimators and run timestamps are excluded from byte equality.
+
+#### Scenario: Incomplete or relocated replay
+- **WHEN** both calculations omit the same required output
+- **THEN** reproduction fails even if the remaining files match.
+- **WHEN** a completed bundle is relocated and replayed with `--replay`
+- **THEN** resolve data paths inside the bundle, verify saved input hashes and dependency versions, and require agreement with both the new repeat and original numerical results; refuse tampered inputs before execution.
+
 ### Requirement: Standalone reproducibility
 The project SHALL provide local setup, documented external data retrieval, reload from local snapshots, stage scripts, a notebook orchestrator and a single end-to-end command. It SHALL NOT require code or data from a reference project at runtime.
 
@@ -15,6 +36,12 @@ The project SHALL provide local setup, documented external data retrieval, reloa
 - **GIVEN** complete previously retrieved source snapshots and their metadata
 - **WHEN** the user executes the documented offline workflow with the same configuration
 - **THEN** it uses those snapshots and reports outputs and limitations without silently fetching replacement data.
+
+#### Scenario: Repeated source replay
+- **GIVEN** unchanged, checksum-valid source snapshots and the same date range
+- **WHEN** the source loader is called repeatedly
+- **THEN** each call returns the same date-ordered market rows and report-ordered COT rows without changing the snapshots or contacting providers.
+- **AND** duplicate market dates or COT ticker/report dates fail clearly instead of multiplying observations.
 
 ### Requirement: Information availability
 Every feature SHALL be available by its documented signal cutoff. COT observations SHALL have a confirmed public release time, and unavailable or unconfirmed releases SHALL be excluded. Completed crypto candles and the ETF exchange calendar SHALL be respected.
@@ -48,6 +75,12 @@ The project SHALL document signal and execution times and a five-trading-session
 - **GIVEN** the latest signal is produced by a model trained only through validation
 - **WHEN** the signal report is generated
 - **THEN** it includes the latest training-label exit date so the model's age is visible.
+
+#### Scenario: Validation candidate comparison
+- **WHEN** model selection completes on sufficient chronological, purged history
+- **THEN** export `model_comparison.csv` with each candidate's identifier, estimator class, actual estimator parameters, validation MAE/RMSE and an explicit selected flag; show the comparison in the CLI and workflow notebook.
+- **AND** select exactly one candidate by minimum validation MAE, preserving candidate order for ties. Holdout labels SHALL NOT affect the comparison or selection; holdout scores remain separate.
+- **AND** an insufficient-history run SHALL NOT generate candidate scores. A market-only diagnostic SHALL remain explicitly separate from COT-inclusive evidence.
 
 ### Requirement: Cost-aware simulation
 The project SHALL define capital, position sizing, execution, transaction costs, slippage and a meaningful benchmark on the same evaluation period. It SHALL report relevant performance metrics and limitations only from actual runs.
@@ -87,19 +120,19 @@ Reviewed against the [official course project rubric](https://github.com/DataTal
 | **Problem: brief README description** | Draft: [README](../../../README.md) describes GLD/SLV forecasting; reviewer acceptance unverified. |
 | Problem: context, goal and usage | Draft: README identifies an analyst and benchmark comparison; validate against actual workflow. |
 | Problem: new definition | Draft: two precious-metals ETFs and COT differ from the course's largest-stock setup. |
-| Problem: clear steps, findings and reproduction | Open: commands and methods are described, but actual findings and complete reproducibility are absent. |
-| **Data: lecture sources and features** | Open: Yahoo-based ingestion and feature code exist; full lecture-by-lecture mapping and real source execution are unverified. |
+| Problem: clear steps, findings and reproduction | Draft: README provides a reviewer route; findings and frozen-bundle replay are documented in the canonical full-run report. Two current-code calculations match 20 numerical outputs. |
+| **Data: lecture sources and features** | Draft: [feature dictionary](../../../docs/FEATURE_DICTIONARY.md) maps project sources and transformations to official Modules 1–5; a full COT-inclusive run and replay are recorded in [the experiment report](../../../docs/FULL_RUN.md). The 20+ described-feature course criterion remains open; five derived examples are currently documented. |
 | Data: 20+ described new features | Open: [settings](../../../config/settings.yml) enumerate numeric inputs; do not count source inputs or assume all are new, available and meaningful. |
 | Data: new source beyond YFinance/FRED | Draft: CFTC ingestion and [release evidence](../../../docs/COT_RELEASE_EVIDENCE.md) exist; usable real source coverage and experiment remain unverified. |
 | Data: over one million records | Open: no real dataset or verified row count. |
-| **Transform: combined table and feature sets** | Draft: [feature implementation](../../../src/capstone/features.py) and config define the approach; real combined table has not been produced. |
-| Transform: at least five relevant new features | Draft: feature transformations exist; establish and describe at least five meaningful, available derived features on real data. |
-| Transform: EDA | Open: actual target distributions, correlations and findings require a real dataset. |
-| **Model: DecisionTree or RandomForest** | Draft: [modeling code](../../../src/capstone/modeling.py) contains candidates; real training and predictions are unverified. |
-| Model: more than one lecture model | Draft: candidate definitions exist; actual comparisons require execution. |
+| **Transform: combined table and feature sets** | Draft: [feature implementation](../../../src/capstone/features.py) and frozen experiment bundle provide a 1,916-row modeled table, 1,906 labeled rows and 211 COT report dates after point-in-time filtering. |
+| Transform: at least five relevant new features | Draft: five derived features are defined and available in the limited table; relevance and stability on adequate real history remain unverified. |
+| Transform: EDA | Draft: [market EDA](../../../docs/EDA_FINDINGS.md) covers full local price history and validation candidate results; independent review and broader sensitivity remain open. |
+| **Model: DecisionTree or RandomForest** | Draft: the canonical COT-inclusive comparison evaluates DecisionTree and RandomForest candidates against the mean baseline and selects mean by validation MAE. The current-code frozen experiment matches 20 numerical output hashes across two calculations; see [the full-run report](../../../docs/FULL_RUN.md). Reviewer acceptance remains unverified. |
+| Model: more than one lecture model | Draft: DecisionTree and RandomForest candidates were fitted on train and compared on full-COT validation; [candidate parameters, metrics and selected flag](../../../docs/EDA_FINDINGS.md#full-cot-validation-candidate-comparison) are exported. Reviewer acceptance remains unverified. |
 | Model: custom rules for higher-probability events | Open: demonstrate that actual rules and their validation satisfy the rubric; return-regression thresholds alone do not establish calibrated probabilities. |
-| Model: hyperparameter tuning | Draft: search code exists; no real tuning outcome verified. |
-| Model: new model | Draft: Ridge candidate exists; no real comparison verified. |
+| Model: hyperparameter tuning | Draft: configured tree/forest depths and Ridge alphas were compared on full-COT validation; the canonical run selected `mean` by validation MAE. No settings were changed in response to holdout. Reviewer acceptance remains unverified. |
+| Model: new model | Draft: Ridge alpha 1 and 10 were compared on full-COT validation; neither won. Reviewer acceptance remains unverified. |
 | **Simulation: vector strategy and approximate capital return** | Draft: [simulation code](../../../src/capstone/backtest.py) contains a fixed-notional approximation; real execution and course acceptance remain unverified. |
 | Simulation: at least two strategies | Draft: rules exist; demonstrate per-prediction outputs and comparisons on actual data. |
 | Simulation: exact reinvestment and efficient capital use | Draft: cash-constrained event simulation exists; full real run and rubric acceptance of capital efficiency are unverified. |

@@ -37,6 +37,22 @@ def test_missing_intermediate_price_for_one_ticker_is_rejected():
         run_backtest(predictions, prices)
 
 
+def test_all_test_orders_must_be_liquidated_within_the_priced_window():
+    dates = pd.bdate_range('2024-01-02', periods=6)
+    predictions = pd.DataFrame([
+        {'split': 'test', 'ticker': ticker, 'entry_date': dates[0],
+         'exit_date': dates[-1] + pd.offsets.BDay(1), 'prediction': .1}
+        for ticker in ('GLD', 'SLV')
+    ])
+    prices = pd.DataFrame([
+        {'date': date, 'ticker': ticker, 'adjusted_open': 100.}
+        for date in dates for ticker in ('GLD', 'SLV')
+    ])
+
+    with pytest.raises(ValueError, match='Missing or invalid'):
+        run_backtest(predictions, prices)
+
+
 def test_vectorized_fixed_notional_and_two_sided_costs():
     from capstone.backtest import run_vectorized_backtest
     signals = pd.DataFrame([

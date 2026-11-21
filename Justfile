@@ -51,3 +51,28 @@ prompt-release lock_slug session_id:
 # Claim the first unclaimed parallel prompt with an available object lock.
 take-next-prompt session_id:
     python3 scripts/take_next_prompt.py --session-id {{ session_id }}
+
+# Initialize ignored local Dagster state without overwriting user configuration.
+dagster-init:
+    mkdir -p .run/dagster
+    test -f .run/dagster/dagster.yaml || cp config/dagster.yaml .run/dagster/dagster.yaml
+
+# Load and validate the optional research asset definitions.
+dagster-check: dagster-init
+    DAGSTER_HOME="{{ justfile_directory() }}/.run/dagster" uv run --locked --no-sync dg check defs --use-active-venv
+
+# Start local orchestration UI; no schedules are configured or enabled.
+dagster-dev: dagster-init
+    DAGSTER_HOME="{{ justfile_directory() }}/.run/dagster" uv run --locked --no-sync dg dev --host 127.0.0.1 --port 3000 --use-active-venv
+
+# Execute one offline frozen experiment with a configurable launch configuration.
+dagster-run config="config/dagster-run.yml": dagster-init
+    DAGSTER_HOME="{{ justfile_directory() }}/.run/dagster" uv run --locked --no-sync dg launch --job frozen_research_job --config "{{ config }}"
+
+# Run the local Streamlit explorer; optional explicit bundle and port.
+streamlit run=env_var_or_default("CAPSTONE_RESEARCH_RUN", "") port=env_var_or_default("STREAMLIT_SERVER_PORT", "8501"):
+    CAPSTONE_RESEARCH_RUN="{{ run }}" uv run --locked --no-sync streamlit run src/capstone/dashboard.py --server.address 127.0.0.1 --server.port "{{ port }}" --server.headless true --browser.gatherUsageStats false
+
+# Export standalone offline Plotly charts and result tables from a saved bundle.
+plotly run=env_var_or_default("CAPSTONE_RESEARCH_RUN", "") output="artifacts/research-explorer/plotly.html":
+    uv run --locked --no-sync python -m capstone.plotly_report --run "{{ run }}" --output "{{ output }}"

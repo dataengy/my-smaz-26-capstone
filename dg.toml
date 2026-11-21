@@ -1,0 +1,6 @@
+directory_type = "project"
+
+[project]
+root_module = "capstone"
+defs_module = "capstone"
+code_location_target_module = "capstone.orchestration"

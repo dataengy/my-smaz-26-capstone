@@ -1,0 +1,14 @@
+# settings.yml — scripts/session-hooks (session hooks)
+session_hooks:
+  github-issue-upsert:
+    enabled: true
+    desc: Remind to reconcile actionable backlog changes with GitHub Issues using stable IDs and upsert semantics
+    tracked_paths:
+      - .ai/BACKLOG.md
+      - .ai/BUGS.md
+    reminder: "Backlog or bug records changed. Reconcile matching GitHub issues by stable ID, updating existing issue fields before creating anything new; record issue URLs locally."
+  cross-session-gate:
+    enabled: true
+    desc: Remind to update the shared session gate before ending
+    gate_path: .ai/.locks/GATE.md
+    reminder: "Before ending, update the shared gate with verified handoff facts and next owners; check locks and keep this note distinct from project status."

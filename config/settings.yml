@@ -4,6 +4,7 @@ holding_sessions: 5
 cross_market_max_age_days: 4
 market_download_timeout_seconds: 30
 cftc_download_timeout_seconds: 45
+download_cache_ttl_hours: 24
 
 # Chronological partition fractions; the remainder is the final holdout.
 train_fraction: 0.6

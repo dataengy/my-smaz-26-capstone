@@ -2,71 +2,61 @@
 
 # Precious Metals ETF Forecasting with CFTC Positioning
 
-## Project status
+This project investigates whether CFTC futures positioning and market history can help predict the next five-session return of GLD and SLV, and compares hypothetical signals with passive ETF ownership. It is an educational research workflow, not investment advice.
 
-**Work in progress; no empirical results have been produced.** The development environment could not resolve CFTC, Yahoo Finance or PyPI. The release-evidence file contains only four independently evidenced historical reports, which are insufficient for the intended experiment. Consequently the end-to-end experiment, source formats in live downloads, full calendar test suite, clean installation, and notebook execution remain unverified. A focused exchange-calendar check passed in the project environment. This repository does not claim profitability or benchmark outperformance.
+## Current evidence
 
-This educational research project investigates whether futures positioning, market history and cross-market signals can help a researcher estimate the next five-session return of GLD and SLV. The user is an analyst comparing hypothetical signals with passive ETF exposure, not someone receiving investment advice. Unlike the course's largest-stock weekly setup, the traded universe is two precious-metals ETFs and the study adds CFTC futures positioning and crypto/stock-market context.
+The software pipeline and offline synthetic walkthrough exist. The canonical frozen real-data COT experiment used 213 paired post-launch CFTC PRE report dates matched to annual archives. Its current-code bundle was calculated twice, and both runs match 20 numerical outputs; validation selected the mean baseline (MAE 0.036398). Earlier root outputs that selected `forest_3` used signals before CFTC PRE began, lack frozen code/config/input evidence and are excluded from the documented experiment; the current root outputs now match the canonical run. The long/cash strategy and equal-weight buy-and-hold both lost money on holdout after modeled costs. These historical results do not establish future profitability. See the [full-run report](docs/FULL_RUN.md) and [independent QA](docs/FINAL_QA.md).
 
-## Setup and running
+## Reviewer route
 
-Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/). The resolved dependency versions are in `uv.lock`. Core dependencies were installed locally, but a clean installation including test and notebook dependencies is not yet verified due to intermittent DNS failures.
-
-```bash
-export UV_PROJECT_ENVIRONMENT=.run/venv UV_CACHE_DIR=.run/uv-cache
-uv sync --locked --extra dev
-uv run capstone download --config config/config.yml --settings config/settings.yml
-# Extend config/release_dates.csv with independently evidenced publication times.
-uv run capstone run --config config/config.yml --settings config/settings.yml --offline
-uv run --locked --extra test python -m pytest -q
+```mermaid
+flowchart LR
+    question["Problem and limits"] --> setup["Set up and run locally"]
+    setup --> replay["Inspect frozen results and replay"]
+    replay --> rubric["Map each criterion to evidence"]
+    rubric --> review["Course review and presentation"]
 ```
 
-Alternatively `uv run capstone run` downloads and then runs; `make download`, `make run`, `make run-notebook`, and `make test` are shortcuts. `make run-notebook` opens `notebooks/workflow.ipynb` in Jupyter from the project root. The notebook calls the same Python functions. Outputs are written under `artifacts/`; downloaded data and outputs are excluded from Git. Refreshing snapshots overwrites the local snapshot for that source; keep a separate copy to freeze a previous run. See the [command reference](docs/COMMANDS.md) for all Make and Just operations.
+1. Read the [problem and method](#precious-metals-etf-forecasting-with-cftc-positioning) and the [data and timing limits](#method-and-limits).
+2. Follow the [local setup and run commands](#run-locally). For an exact repeat of the saved experiment, use the frozen-bundle replay command in the [full-run report](docs/FULL_RUN.md); it uses local snapshots and does not fetch replacement data.
+3. Compare the [reported results](docs/FULL_RUN.md) with the [independent QA findings](docs/FINAL_QA.md). The report identifies the canonical bundle, selected baseline, holdout results and remaining limitations.
+4. Use the [course criteria matrix](docs/COURSE_CRITERIA_STATUS.md) to jump from each rubric item to its evidence and remaining gap. It records implementation evidence, not points awarded by course reviewers.
 
-For an offline walkthrough that does not use real market observations, run `make demo-synthetic`; it creates generated source-shaped rows in `data/synthetic/human-demo/` and opens a prominently labeled visual report under `artifacts/synthetic-demo/`. Run `make test-demo-synthetic` to verify that the report and charts render. See the [synthetic demo guide](docs/SYNTHETIC_DEMO.md). Its generated metrics are software-demo output only, not research results.
+| Stage | Result | Evidence | Reproduce |
+|---|---|---|---|
+| Full COT experiment | The canonical bundle used 1,916 modeled rows and selected `mean` by validation MAE. Two current-code calculations matched 20 numerical outputs; long/cash and equal-weight buy-and-hold both lost money after modeled costs. Earlier unprovenanced root outputs are excluded and have been refreshed. | [Full-run report](docs/FULL_RUN.md), [independent QA](docs/FINAL_QA.md) | Use the current-code saved-bundle replay command documented in the report |
+| Synthetic workflow demo | Deterministic fictional inputs exercise feature, model and simulation code. The generated metrics are not market evidence. | [Demo guide](docs/SYNTHETIC_DEMO.md) | `make demo-synthetic` |
 
-A local file run verifies SHA-256 sidecars. Market snapshots also record request-start time: bars are eligible only after the NYSE session close or crypto UTC midnight, as applicable. Legacy market snapshots without request-start metadata must be refreshed; replay never promotes a previously incomplete bar. `config/release_dates.csv` must contain `report_date,available_at,source_url`, with independently substantiated availability in explicit UTC and an HTTPS evidence link per report. The four included reports are insufficient for the planned experiment; see [publication evidence](docs/COT_RELEASE_EVIDENCE.md). The timestamps are conservative eligibility cutoffs, not actual release instants. A forecast must not use a report based only on its observation date or an unverified schedule. Availability evidence is a human-reviewed input, not something the parser independently authenticates. Consider holidays, the 2025 federal funding lapse and later schedule changes. The [CFTC historical FAQ](https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm) says there is no full historical release-date list; the [2026 schedule](https://www.cftc.gov/MarketReports/CommitmentsofTraders/ReleaseSchedule/index.htm) is tentative, not proof of publication. The [backlog announcement](https://www.cftc.gov/PressRoom/PressReleases/9147-25) illustrates exceptional delays. Newer schedules must be verified before use.
+## Run locally
 
-## Developer checks and GitHub CI
+<a id="setup-and-running"></a>
 
-The `dev` extra includes the pinned [`prek`](https://prek.j178.dev/) hook runner. Run `uv sync --locked --extra dev`, then `make hooks` to check all files or `make install-hooks` to install the local pre-commit hook. The hook configuration is in `.pre-commit-config.yaml`. GitHub Actions is configured to run those hooks and the locked test suite on pushes to `main`, pull requests, and manual dispatch. CI uses fixtures and does not download market data or verify the real-data research workflow.
+Requires Python 3.11+, `uv`, and network access for setup and data retrieval. From the project root:
 
-## Data and methodology
+```sh
+make setup
+make download       # reuses verified snapshots; fetches missing/stale sources
+make download-refresh # explicitly refreshes every configured source
+# review and extend config/release_dates.csv with report-specific evidence first
+make run             # offline workflow from local snapshots
+make run-notebook    # open the notebook workflow
+make demo-synthetic  # fictional offline walkthrough; not a research result
+make test
+```
 
-CFTC [disaggregated futures-only annual archives](https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/index.htm) supply COMEX gold and silver open interest and managed-money and producer long/short positions. They are public US government reports; consult the provider's terms and attribution notices. Archives are locally cached with download timestamps, source and checksum. Yahoo Finance prices are retrieved using yfinance, which is an unaffiliated tool for educational/research use; [Yahoo data is intended for personal use](https://ranaroussi.github.io/yfinance/). Provider availability, rate limits, revisions and terms can change. Optional SOL-USD, ETH-USD, ZEC-USD, S&P 500, Nasdaq Composite and Dow Jones data may be absent; required rows include GLD, SLV, BTC-USD and NVDA. FRED is deferred until vintage and publication timing can be verified.
+The earlier COT publication-history bottleneck is resolved for 2022-10 onward by report-specific PRE row metadata; the full real-data experiment still requires validating row-level COT coverage and current market snapshots. A market-only purged holdout diagnostic has run on cached prices and cross-market features; it excludes COT and does not substitute for the intended experiment. Commands, configuration, snapshot handling and recovery steps are in the [runbook](docs/RUNBOOK.md) and [command reference](docs/COMMANDS.md).
 
-The combined table has one row per ETF/session with a timely evidenced COT report. `TO_PREDICT` is adjusted-open return from the next session's open to the open five sessions later; `DUMMIES` contains ticker. `NUMERIC` includes ETF 1/5/20-session returns, 5/20-session volatility, distance to 20-session mean, five-session volume change, COT managed/producer net positioning divided by open interest, change in managed positioning, age of COT, and five-observation returns of the available cross-market series. Missing optional inputs remain missing and model imputation is fitted on training data only. The price adjustment factor also adjusts opens, approximating total return; it is not a separate dividend cash ledger, and provider revisions or corporate-action adjustments can introduce point-in-time limitations.
+## Method and limits
 
-Source dates, storage locations, targets, required and optional tickers, and the ticker-to-feature map live in [`config/config.yml`](config/config.yml). Remove an optional ticker from `market_features` to disable its download and model input; required tickers remain active. Research timing, freshness windows, provider timeouts, chronological split fractions, model search grid, thresholds, costs, capital, report output and the local Codex session path live in [`config/settings.yml`](config/settings.yml). CLI `--config` and `--settings` options can point to alternate YAML files; settings keys may not duplicate source-config keys. Credentials do not belong in either file.
+<a id="data-and-methodology"></a>
 
-Signals are generated at the actual NYSE close, including early closes; entries occur at the next open. Crypto daily bars are usable only after the next UTC midnight. COT joins use evidenced publication timestamps and expire after seven days by default. Exchange-session validation rejects missing ETF bars. Current source files can differ from information available historically, which remains a research limitation.
+Signals are formed at the actual NYSE session close; entries are modeled at the next open and the target spans five ETF sessions. COT reports are eligible only after evidenced publication availability. Models and strategy thresholds are selected on chronological validation data, with crossing target intervals purged; the holdout is reserved for evaluation. Simulations include configured costs and compare against buy-and-hold over the same period.
 
-Distinct session dates are divided chronologically into train/validation/test (default 60/20/20), with observations purged where their target exits on or beyond the next split. A mean baseline, Ridge, DecisionTree and RandomForest candidates are compared by validation MAE. A trading threshold is selected on validation only; the selected model is refit on eligible train and validation observations and tested on the held-out period. Overlapping long/cash trades use available cash and fixed per-lot allocation; a threshold rule and equal-weight buy-and-hold are compared over the same window. Combined commission and slippage default to 10 basis points per side; capital defaults to 100,000 units. Results include MAE, RMSE, total return, CAGR, Sharpe, drawdown and equity charts when execution succeeds. A vectorized fixed-notional simulation accumulates closed-trade returns without reinvestment or daily marking; it assumes budgets remain affordable and is only an approximation. The reinvesting simulation is event-ordered and cash-constrained.
+Key limits include PRE metadata's lack of a preserved historical access log, vendor revisions and historical-vintage uncertainty, assumptions about adjusted prices and execution costs, and a fixed two-ETF universe. COT's incremental contribution has not been isolated through an ablation, and the strategy lost money on holdout. A clean uncached install and full notebook-kernel launch remain unverified in this environment. See [independent QA](docs/FINAL_QA.md), [architecture and data flow](docs/ARCHITECTURE.md), and [course criteria status](docs/COURSE_CRITERIA_STATUS.md).
 
-## Course checklist
+## Documentation
 
-| Criterion | Status |
-|---|---|
-| Problem and intended user documented | Drafted; awaiting review |
-| Lecture sources and features | Partially implemented; live access and full lecture mapping unverified |
-| One table and explicit feature sets | Implemented; real data run unverified |
-| DecisionTree/RandomForest | Implemented; real training unverified |
-| Vector simulation | Fixed-notional approximation implemented; real-data execution and course acceptance unverified |
-| Notebook and script workflow, latest signals | Drafted; complete execution unverified |
-| Extra features, CFTC source, EDA | Implemented in code; real evidence and results outstanding |
-| Multiple models, tuning, trading rules and benchmark | Implemented in code; results outstanding |
-| Reproducibility and local snapshots | Designed and partially tested; clean environment and real rerun outstanding |
-| Individual presentation and three peer reviews | Not completed |
-| Cloud, broker integration, deployment | Not completed; optional backlog |
+<a id="course-checklist"></a>
 
-The [official criteria](https://github.com/DataTalksClub/stock-markets-analytics-zoomcamp/blob/main/projects/README.md) are the source of truth for scoring. There is no claim that code alone has earned points.
-
-## Limitations and defense
-
-Risk factors include leakage from publication timing or source revisions, overlapping horizons, hyperparameter selection, a small fixed asset universe and survivorship/selection bias, transaction cost and liquidity assumptions, and historical performance that may not generalize. No signal is a guarantee of future returns. No live orders, cloud deployment or fabricated experiments are included.
-
-For a defense: explain the problem and user; show source provenance and a confirmed COT timestamp; trace one signal through its next-open entry and five-session exit; demonstrate the local reproduction command; compare validation-selected models and held-out net equity with the benchmark; discuss errors and limitations. Actual numerical results must be added only after a successful real-data run.
-
-The [documentation index](docs/index.md) describes the project, while the [project backlog](.ai/BACKLOG.md) tracks prioritized work, blockers and acceptance evidence. Agent roles, development rules and the shared plan are linked from [AGENTS.md](AGENTS.md). Local Codex usage metadata can be summarized with `make usage`; that report is experimental, incomplete and is not billing information.
-
-Latest signals use the frozen train-plus-validation model, not a model retrained on the holdout. The report includes `model_training_last_exit` so its training cutoff is visible; it may be old.
+Start at the [documentation index](docs/index.md). It links practical setup and demo guides, technical explanations, provider evidence, command reference, research notes and course materials. Project plans and agent operations are kept in [`.ai/`](.ai/IMPLEMENTATION_PLAN.md).

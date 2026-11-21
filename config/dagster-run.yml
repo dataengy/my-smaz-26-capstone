@@ -1,0 +1,6 @@
+ops:
+  frozen_research_assets:
+    config:
+      source_config: config/config.yml
+      settings: config/settings.yml
+      output_root: artifacts/dagster

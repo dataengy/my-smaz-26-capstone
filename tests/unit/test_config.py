@@ -33,6 +33,8 @@ def test_default_paths_load_project_yaml_config(monkeypatch):
     assert cfg["target_symbols"] == ["GLD", "SLV"]
     assert set(cfg["required_symbols"]).issubset(cfg["symbols"])
     assert cfg["codex_sessions_root"] == "~/.codex/sessions"
+    assert cfg["market_sources"]["BTC-USD"] == {"provider": "binance", "ticker": "BTCUSDT"}
+    assert cfg["market_sources"]["SOL-USD"]["history_start"] == "2020-08-11"
 
 
 def test_explicit_config_and_settings_paths_load(tmp_path):
@@ -79,4 +81,24 @@ def test_rejects_invalid_partition_fractions(tmp_path):
     )
 
     with pytest.raises(ValueError, match="sum to less than one"):
+        read_config(config_path, settings_path)
+
+
+def test_rejects_unsupported_market_source_provider(tmp_path):
+    config_path, settings_path = _write_config_pair(
+        tmp_path,
+        source_changes={"market_sources": {"BTC-USD": {"provider": "unknown", "ticker": "BTCUSDT"}}},
+    )
+
+    with pytest.raises(ValueError, match="Unsupported market_sources provider"):
+        read_config(config_path, settings_path)
+
+
+def test_rejects_malformed_provider_history_start(tmp_path):
+    config_path, settings_path = _write_config_pair(tmp_path)
+    source = yaml.safe_load(config_path.read_text())
+    source["market_sources"]["SOL-USD"]["history_start"] = "2020-02-31"
+    config_path.write_text(yaml.safe_dump(source, sort_keys=False))
+
+    with pytest.raises(ValueError, match="history_start must be an ISO date string"):
         read_config(config_path, settings_path)

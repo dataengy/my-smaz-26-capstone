@@ -21,6 +21,15 @@ symbols:
   ^IXIC: ^IXIC
   ^DJI: ^DJI
 
+# Crypto rows use Binance Spot USDT pairs; USDT is treated as USD-equivalent.
+# The other market series keep their configured Yahoo Finance tickers.
+# Earliest provider-returned bars below are cache coverage bounds, not claimed listing dates.
+market_sources:
+  BTC-USD: {provider: binance, ticker: BTCUSDT}
+  SOL-USD: {provider: binance, ticker: SOLUSDT, history_start: '2020-08-11'}
+  ETH-USD: {provider: binance, ticker: ETHUSDT}
+  ZEC-USD: {provider: binance, ticker: ZECUSDT, history_start: '2019-03-21'}
+
 # Map provider tickers to stable feature-name prefixes. Removing an optional
 # entry disables its download and model feature; required series remain active.
 market_features:

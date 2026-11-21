@@ -7,7 +7,8 @@ The Makefile is the entry point for common local work. It uses `uv` and defaults
 ```sh
 make help
 make setup
-make download       # network access; fetch configured sources
+make download       # reuse verified snapshots; fetch missing/stale sources
+make download-refresh # force-fetch every configured source
 make features       # build the analytical table from local snapshots
 make run            # offline research workflow; requires downloaded snapshots
 make run-notebook   # starts Jupyter for notebooks/workflow.ipynb
@@ -17,6 +18,7 @@ make test
 make test-unit
 make test-integration
 make test-smoke
+make test-source-smoke # live network check for configured providers; does not save data
 make e2e-origin     # opt-in; requires CAPSTONE_E2E_ORIGIN
 make e2e-real       # opt-in; requires CAPSTONE_E2E_CONFIG
 make hooks
@@ -25,7 +27,15 @@ make periodic-install  # optional macOS schedule; see the dedicated guide
 make usage          # experimental local Codex metadata summary
 ```
 
-`make download` accesses external providers and can overwrite local source snapshots. Snapshot data and outputs stay under ignored `data/` and `artifacts/`. E2E tests are opt-in and their required environment variables are described in the [runbook](RUNBOOK.md). The `usage` summary is not a complete session ledger or billing report.
+`make download` contacts external providers only for missing, invalid, incomplete, or stale cache entries. A source cache is reusable only when its checksum, provider provenance, schema, unique ordered dates, completed bars, finite closes, and configured coverage pass validation. Historical CFTC archives are reused after checksum and parse validation; the current-year archive is refreshed after `download_cache_ttl_hours` (24 hours by default, in `config/settings.yml`). `make download-refresh` or `uv run capstone download --force` bypasses all cache checks. Download logs report each source decision, provider/ticker, coverage, bytes, SHA-256, and final downloaded/skipped/failed counts. Failed or malformed responses are rejected before replacing the previous snapshot. Snapshot data and outputs stay under ignored `data/` and `artifacts/`. E2E tests are opt-in and their required environment variables are described in the [runbook](RUNBOOK.md). The `usage` summary is not a complete session ledger or billing report.
+
+`make hooks` runs the repository's `prek` checks. They include Lychee checks for links in Markdown (including external URLs), Ruff lint on Python source and project scripts, an offline local file/heading-anchor check, and `make verify-fast` (compile plus unit, integration and smoke tests), alongside whitespace, conflict-marker, YAML/JSON/TOML and private-key checks. Ruff uses the project's explicit core error and undefined-name rules. Lychee needs network access to verify external URLs; its hook checks the Markdown files selected by `prek` (all Markdown files with `make hooks` and in CI's `--all-files` run). The local link check scans the repository's Markdown files and works offline. The fast test hook runs when Python files are selected, and on all-files CI runs. CI installs the locked development dependencies before running the same hooks.
+
+For assets whose provider history starts after the configured project start, `history_start` in `config/config.yml` sets the earliest expected cache-coverage date; it is a returned-data bound, not a claim about the asset's listing date. After acquisition, inspect the emitted source summaries and sidecars; a successful command or `0 downloaded` cache hit does not by itself certify usable target data or COT publication availability. The current validated snapshot ranges and a reproducible full experiment are recorded in [the full-run report](FULL_RUN.md).
+
+`make test-source-smoke` is the bounded, opt-in acquisition preflight: it checks recent responses for every active configured market provider (Yahoo Finance or Binance Spot), reads only the ZIP signature from every annual CFTC archive in the configured date range, and checks each release-evidence page referenced by the COT manifest. Each request has an eight-second timeout; Yahoo responses are capped at 64 KiB and CFTC archive reads at four bytes. It never writes snapshots. A passing probe establishes current endpoint reachability and basic response shape; it does not validate full archive contents, data completeness, licensing, COT publication timestamps, or research usability. If it fails, do not start the bulk downloader. Ordinary `make test` and `make test-smoke` skip these live checks.
+
+Offline source loading is idempotent for unchanged, checksum-valid snapshots and configuration: repeated calls return the same rows without network requests or snapshot writes. Duplicate dates are rejected. The downloader is cache-aware by default; forced refresh is explicit.
 
 The synthetic demo uses deterministic fictional market and COT-shaped inputs, then exercises the real feature, model-selection and simulation code. It does not call providers and its metrics are not research results. Open `artifacts/synthetic-demo/index.html` after `make demo-synthetic`; see [Synthetic human demo](SYNTHETIC_DEMO.md) for details.
 

@@ -62,7 +62,7 @@ def _other_returns(raw: pd.DataFrame, symbol: str, signals: pd.DataFrame, max_ag
     frame = _market_frame(raw, symbol)
     frame["value"] = frame.adj_close.pct_change(5, fill_method=None)
     if symbol.endswith("-USD"):
-        # Yahoo's crypto bars run 00:00 through 23:59:59 UTC; available next midnight.
+        # Binance's daily crypto bars use UTC dates; use them after next midnight.
         frame["known_at"] = (frame.date + pd.Timedelta(days=1)).dt.tz_localize("UTC")
     else:
         frame["known_at"] = _session_closes(frame.date)
@@ -87,7 +87,10 @@ def build_features(sources: dict[str, pd.DataFrame], config: dict) -> pd.DataFra
     required_cot = {"ticker", "report_date", "available_at", "source_url", "open_interest", "managed_long", "managed_short", "producer_long", "producer_short"}
     if not required_cot.issubset(cot.columns):
         raise ValueError(f"Missing COT columns: {sorted(required_cot - set(cot.columns))}")
-    cot["available_at"] = pd.to_datetime(cot.available_at, utc=True, errors="raise")
+    # Pandas may infer second-resolution timestamps from a CSV manifest while
+    # exchange-calendar signal times use nanoseconds. Normalize merge keys so
+    # replay behaves consistently across pandas versions and timestamp inputs.
+    cot["available_at"] = pd.to_datetime(cot.available_at, utc=True, errors="raise").astype("datetime64[ns, UTC]")
     cot["report_date"] = pd.to_datetime(cot.report_date, errors="raise")
     rows = []
     market_features = config.get("market_features", DEFAULT_MARKET_FEATURES)
