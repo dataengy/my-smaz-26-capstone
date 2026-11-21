@@ -19,6 +19,68 @@ def test_snapshot_detects_modification(tmp_path):
         _read_snapshot(path)
 
 
+def test_failed_optional_refresh_does_not_reuse_older_cache(tmp_path, monkeypatch, capsys):
+    from capstone import data
+
+    data_dir = tmp_path / "data"
+    market_dir = data_dir / "raw" / "market"
+    observed_at = pd.Timestamp("2024-01-05T22:00:00Z").to_pydatetime()
+    bars = make_synthetic_market_bars(["2024-01-02", "2024-01-03"])
+    for name in ("GLD", "SLV", "NVDA"):
+        path = market_dir / f"{name}.csv"
+        _write_snapshot(path, bars.to_csv(index=False).encode(), f"Yahoo Finance: {name}", observed_at=observed_at)
+
+    raw = pd.DataFrame({
+        "CFTC_Contract_Market_Code": ["088691"],
+        "Report_Date_as_YYYY-MM-DD": ["2024-01-02"],
+        "Open_Interest_All": [100],
+        "M_Money_Positions_Long_All": [20],
+        "M_Money_Positions_Short_All": [10],
+        "Prod_Merc_Positions_Long_All": [30],
+        "Prod_Merc_Positions_Short_All": [40],
+    })
+    archive_path = data_dir / "raw" / "cftc" / "2024.zip"
+    archive_path.parent.mkdir(parents=True)
+    archive_buffer = io.BytesIO()
+    with zipfile.ZipFile(archive_buffer, "w") as archive:
+        archive.writestr("annual.txt", raw.to_csv(index=False))
+    _write_snapshot(archive_path, archive_buffer.getvalue(), data.CFTC_URL.format(year=2024))
+
+    manifest_path = tmp_path / "release.csv"
+    manifest_path.write_text(
+        "report_date,available_at,source_url\n"
+        "2024-01-02,2024-01-05T05:00:00Z,https://example.invalid/release-evidence\n"
+    )
+    monkeypatch.setattr(data, "_completed_market_bars", lambda frame, symbol, observed_at: frame)
+
+    def fake_download(symbol, start, end, timeout):
+        if symbol == "NVDA":
+            raise ValueError("fixture refresh failure")
+        source_bars = bars.set_index(pd.DatetimeIndex(pd.to_datetime(bars.date), name="date")).drop(columns="date")
+        return source_bars.to_csv().encode()
+
+    monkeypatch.setattr(data, "_download_market", fake_download)
+    monkeypatch.setattr(data.urllib.request, "urlopen", lambda url, timeout: io.BytesIO(archive_buffer.getvalue()))
+    config = {
+        "data_dir": str(data_dir),
+        "release_manifest": str(manifest_path),
+        "start": "2024-01-01",
+        "end": "2024-01-04",
+        "symbols": {"GLD": "GLD", "SLV": "SLV", "NVDA": "NVDA"},
+        "required_symbols": ["GLD", "SLV"],
+        "target_symbols": ["GLD", "SLV"],
+        "market_features": {"NVDA": "nvda"},
+    }
+
+    sources = data.load_sources(config, refresh=True)
+
+    assert {"GLD", "SLV", "cot"}.issubset(sources)
+    assert "NVDA" not in sources
+    assert "Optional market data NVDA unavailable: fixture refresh failure" in capsys.readouterr().out
+    # The failed refresh does not delete the older snapshot; offline replay remains possible.
+    assert (market_dir / "NVDA.csv").is_file()
+
+
 def test_manifest_requires_explicit_evidenced_utc(tmp_path):
     path = tmp_path / "release.csv"
     path.write_text("report_date,available_at,source_url\n2024-01-02,2024-01-05 20:30:00,https://example.org/report\n")
@@ -42,6 +104,33 @@ def test_cot_zip_filters_contract_codes():
     with zipfile.ZipFile(buf, "w") as z:
         z.writestr("annual.txt", documented.to_csv(index=False))
     assert len(parse_cot_archive(buf.getvalue())) == 2
+
+
+def test_cot_zip_rejects_invalid_or_missing_target_records():
+    with pytest.raises(zipfile.BadZipFile):
+        parse_cot_archive(b"not a zip archive")
+
+    raw = pd.DataFrame({"CFTC_Contract_Market_Code": ["123456"],
+        "Report_Date_as_YYYY-MM-DD": ["2024-01-02"], "Open_Interest_All": [100],
+        "M_Money_Positions_Long_All": [20], "M_Money_Positions_Short_All": [10],
+        "Prod_Merc_Positions_Long_All": [30], "Prod_Merc_Positions_Short_All": [40]})
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("annual.txt", raw.to_csv(index=False))
+    with pytest.raises(ValueError, match="no COMEX gold or silver"):
+        parse_cot_archive(buf.getvalue())
+
+
+def test_cot_zip_rejects_duplicate_contract_report_dates():
+    raw = pd.DataFrame({"CFTC_Contract_Market_Code": ["088691", "088691"],
+        "Report_Date_as_YYYY-MM-DD": ["2024-01-02", "2024-01-02"], "Open_Interest_All": [100, 101],
+        "M_Money_Positions_Long_All": [20, 21], "M_Money_Positions_Short_All": [10, 11],
+        "Prod_Merc_Positions_Long_All": [30, 31], "Prod_Merc_Positions_Short_All": [40, 41]})
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("annual.txt", raw.to_csv(index=False))
+    with pytest.raises(ValueError, match="Duplicate COT ticker/report dates"):
+        parse_cot_archive(buf.getvalue())
 
 
 def test_crypto_bar_is_not_used_until_next_utc_midnight():

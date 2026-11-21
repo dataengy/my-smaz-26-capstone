@@ -21,5 +21,3 @@ def test_cot_cannot_arrive_after_signal_and_target_holds_five_sessions():
     assert gld.loc[0, "exit_date"] == pd.Timestamp("2024-03-19")
     assert gld.loc[0, "target"] == pytest.approx(111 / 106 - 1)
     assert pd.isna(gld.iloc[-1].target)
-
-

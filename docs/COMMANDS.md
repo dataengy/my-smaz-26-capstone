@@ -11,6 +11,8 @@ make download       # network access; fetch configured sources
 make features       # build the analytical table from local snapshots
 make run            # offline research workflow; requires downloaded snapshots
 make run-notebook   # starts Jupyter for notebooks/workflow.ipynb
+make demo-synthetic # generate ignored synthetic inputs and a visual HTML walkthrough
+make test-demo-synthetic # verify the offline human-demo workflow
 make test
 make test-unit
 make test-integration
@@ -19,12 +21,18 @@ make e2e-origin     # opt-in; requires CAPSTONE_E2E_ORIGIN
 make e2e-real       # opt-in; requires CAPSTONE_E2E_CONFIG
 make hooks
 make install-hooks
+make periodic-install  # optional macOS schedule; see the dedicated guide
 make usage          # experimental local Codex metadata summary
 ```
 
 `make download` accesses external providers and can overwrite local source snapshots. Snapshot data and outputs stay under ignored `data/` and `artifacts/`. E2E tests are opt-in and their required environment variables are described in the [runbook](RUNBOOK.md). The `usage` summary is not a complete session ledger or billing report.
 
+The synthetic demo uses deterministic fictional market and COT-shaped inputs, then exercises the real feature, model-selection and simulation code. It does not call providers and its metrics are not research results. Open `artifacts/synthetic-demo/index.html` after `make demo-synthetic`; see [Synthetic human demo](SYNTHETIC_DEMO.md) for details.
+
+Change the schedule with `make periodic-install PERIODIC_INTERVAL_MINUTES=60`. The `periodic-uninstall` and `periodic-run` targets remove or run the task. See the [periodic commit and push guide](PERIODIC_COMMIT_PUSH.md) for its safeguards and behavior.
+
 The Justfile provides supporting, multi-step or agentic operations. Install [just](https://just.systems/) for these targets:
+
 
 ```sh
 just --list

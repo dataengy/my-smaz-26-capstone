@@ -11,6 +11,8 @@ make download       # нужен доступ к сети; загружает н
 make features       # строит аналитическую таблицу по локальным снимкам
 make run            # офлайн-процесс исследования; нужны загруженные снимки
 make run-notebook   # запускает Jupyter для notebooks/workflow.ipynb
+make demo-synthetic # генерирует синтетические входы и визуальный HTML-отчёт
+make test-demo-synthetic # проверяет офлайн human-demo
 make test
 make test-unit
 make test-integration
@@ -19,10 +21,13 @@ make e2e-origin     # опционально; нужна CAPSTONE_E2E_ORIGIN
 make e2e-real       # опционально; нужна CAPSTONE_E2E_CONFIG
 make hooks
 make install-hooks
+make periodic-install  # необязательное расписание macOS; подробности в инструкции
 make usage          # экспериментальная сводка локальных метаданных Codex
 ```
 
 `make download` обращается к внешним поставщикам и может перезаписать локальные снимки источников. Снимки и результаты хранятся в игнорируемых Git каталогах `data/` и `artifacts/`. E2E-тесты включаются явно; необходимые переменные окружения описаны в [инструкции запуска](RUNBOOK.ru.md). Сводка `usage` не является полной историей сессий или отчётом о расходах.
+
+Синтетическое демо генерирует детерминированные фиктивные ряды рынка и COT, после чего запускает настоящий код построения признаков, выбора модели и симуляции. Внешние источники не вызываются, а метрики не являются исследовательскими результатами. После `make demo-synthetic` откройте `artifacts/synthetic-demo/index.html`; подробности — в [описании human-demo](SYNTHETIC_DEMO.ru.md).
 
 В Justfile находятся вспомогательные, многошаговые и агентские операции. Для них установите [just](https://just.systems/):
 
@@ -49,3 +54,5 @@ UV_PROJECT_ENVIRONMENT=.run/venv UV_CACHE_DIR=.run/uv-cache just verify
 ```
 
 Настройка источников и офлайн-повтор описаны в [инструкции запуска](RUNBOOK.ru.md), границы этапов — в [архитектуре](ARCHITECTURE.ru.md).
+
+Интервал можно изменить командой `make periodic-install PERIODIC_INTERVAL_MINUTES=60`. Цели `periodic-uninstall` и `periodic-run` удаляют расписание или запускают один цикл. См. [инструкцию по периодическому коммиту и push](PERIODIC_COMMIT_PUSH.ru.md) с описанием ограничений и поведения.

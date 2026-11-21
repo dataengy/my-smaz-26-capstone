@@ -1,10 +1,12 @@
 # Human-facing shortcuts for common local work.
 # More involved verification and agent/session helpers live in Justfile.
 .DEFAULT_GOAL := help
-.PHONY: help setup download data features run run-notebook test test-smoke test-unit test-integration e2e-origin e2e-real hooks install-hooks usage doctor verify verify-fast agents
+.PHONY: help setup download data features run run-notebook demo-synthetic test-demo-synthetic test test-smoke test-unit test-integration e2e-origin e2e-real hooks install-hooks periodic-install periodic-uninstall periodic-run usage doctor verify verify-fast agents
 
 export UV_PROJECT_ENVIRONMENT ?= .run/venv
 export UV_CACHE_DIR ?= .run/uv-cache
+PERIODIC_INTERVAL_MINUTES ?= 30
+PERIODIC_QUIET_MINUTES ?= 10
 
 help:
 	@printf '%s\n' \
@@ -14,6 +16,8 @@ help:
 	  '  make features       Build the feature dataset from snapshots' \
 	  '  make run            Run the offline research workflow' \
 	  '  make run-notebook   Open the workflow notebook' \
+	  '  make demo-synthetic Generate synthetic data and a visual human demo' \
+	  '  make test-demo-synthetic  Run only the offline synthetic human-demo test' \
 	  '  make test           Run all applicable tests' \
 	  '  make test-unit      Run unit tests only' \
 	  '  make test-integration  Run integration tests only' \
@@ -22,6 +26,9 @@ help:
 	  '  make e2e-real       Run against CAPSTONE_E2E_CONFIG snapshots' \
 	  '  make hooks          Run repository pre-commit checks' \
 	  '  make install-hooks  Install the local pre-commit hook' \
+	  '  make periodic-install  Install the opt-in macOS commit/push schedule' \
+	  '  make periodic-uninstall  Remove the scheduled commit/push task' \
+	  '  make periodic-run   Run one guarded periodic commit/push cycle' \
 	  '  make usage          Summarize local project-attributed Codex metadata' \
 	  '  make verify         Run the extended Justfile verification workflow' \
 	  '  make agents         List supporting/agentic Justfile recipes'
@@ -40,6 +47,12 @@ run:
 
 run-notebook:
 	uv run --locked --no-sync jupyter notebook notebooks/workflow.ipynb
+
+demo-synthetic:
+	uv run --locked --no-sync python -m capstone.synthetic_demo
+
+test-demo-synthetic:
+	uv run --locked --no-sync python -m pytest -q -ra tests/e2e/test_human_demo.py
 
 test:
 	uv run --locked --no-sync python -m pytest -q -ra
@@ -64,6 +77,15 @@ hooks:
 
 install-hooks:
 	uv run --locked --no-sync prek install
+
+periodic-install:
+	python3 scripts/periodic_commit_push.py install --interval-minutes $(PERIODIC_INTERVAL_MINUTES) --quiet-minutes $(PERIODIC_QUIET_MINUTES)
+
+periodic-uninstall:
+	python3 scripts/periodic_commit_push.py uninstall
+
+periodic-run:
+	python3 scripts/periodic_commit_push.py run --quiet-minutes $(PERIODIC_QUIET_MINUTES)
 
 usage:
 	uv run --locked --no-sync python scripts/codex_usage.py --project .

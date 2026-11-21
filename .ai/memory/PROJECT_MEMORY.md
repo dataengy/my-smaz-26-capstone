@@ -25,6 +25,8 @@ This is a repository-maintained record, not automatic persistent model memory. U
 - Assess ETH, ZEC, SOL, market indices and FRED after checking availability, timing and impact on the core sample.
 - Assess optional OpenSpec CLI installation and validation, session-cost integration, Langfuse/MLflow, retrieval, CI, Docker, dashboard and cloud deployment only when justified and permitted.
 
+- 2026-11-21: Added `make demo-synthetic` and `make test-demo-synthetic` as an offline human demonstration. It generates ignored, deterministic, fictional OHLCV/COT snapshots and exercises project feature/model/simulation code, then creates a standalone HTML report with three embedded PNG charts. `make test-demo-synthetic` passed; latest `just verify` passed **37**, skipped **2** opt-in E2E tests. Demo numbers are not empirical results. Copy-ready bilingual PPTX authoring instructions live in `docs/PRESENTATION_PROMPT.md` and `.ru.md`.
+
 ## 2026-11-20 execution evidence
 
 - Shell DNS failed for CFTC, Yahoo Finance and PyPI. No actual data or financial experiment was obtained.
@@ -41,3 +43,5 @@ This is a repository-maintained record, not automatic persistent model memory. U
 - Later on 2026-11-21, core dependencies and `uv.lock` were obtained. A real-calendar fixture passed in `.run/venv`; test and notebook extras remain unavailable after DNS errors.
 - 2026-11-21: Added deterministic source-shaped synthetic OHLCV and COT fixture factories under `tests/fixtures/`, with explicit COT availability and `.invalid` source URLs. The full test suite reported 32 passed, 2 opt-in E2E skipped; no provider data or research result was generated.
 - 2026-11-21: Command interface: use `Makefile` for common human-facing operations and `Justfile` for supporting multi-step/agentic operations. Make delegates only advanced verification/listing targets to Just. Keep `Justfile`/`justfile` equivalent. Read `.ai/.codex/skills/build-command-interface/SKILL.md` before edits and claim `build-interface`. `just verify` passed with 32 passed/2 opt-in E2E skipped; setup/network-dependent paths were not executed.
+- 2026-11-21: Follow-up acceptance added a hand-computed event-order regression for exits funding same-session rebuys. Focused backtest tests passed (7); full local suite passed (36 passed, 2 opt-in skipped). Fresh-clone E2E against `.` passed offline from the shared uv cache (1 passed, 63.25s); online clone setup hit PyPI DNS resolving isolated `setuptools>=75`. This does not verify an uncached installation, published remote or real-data workflow. See `.ai/STATUS.md`.
+- 2026-11-21: The flat-price event simulation test also checks exact two-sided costs and accounts for the second lot's lower budget after entry costs reduce marked equity; the full suite passed after this assertion.
